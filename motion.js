@@ -97,89 +97,50 @@
     return element.querySelectorAll(".char");
   }
 
-  const hero = document.querySelector(".cinematic-hero");
-  const heroCopy = document.querySelector(".cinematic-copy");
-  const house = document.querySelector(".house-world");
-  const houseParts = document.querySelectorAll(".house-volume, .house-tree, .approach-path");
-  const headline = document.querySelector(".cinematic-copy h1");
+  const hero = document.querySelector(".hero");
+  const heroCopy = document.querySelector(".hero-copy");
+  const heroArt = document.querySelector(".hero-art");
+  const artFrame = document.querySelector(".art-frame");
+  const headline = document.querySelector(".hero h1");
 
+  /* Hero intro. */
   if (headline) {
     const words = splitWords(headline);
-    animate(words, { y: ["115%", "0%"], opacity: [0.2, 1], rotateX: [18, 0] }, { duration: 1.2, delay: stagger(0.1, { start: 0.18 }), ease: EASE });
+    animate(words, { y: ["110%", "0%"] }, { duration: 1.15, delay: stagger(0.06, { start: 0.2 }), ease: EASE });
   }
   if (heroCopy) {
-    const supporting = heroCopy.querySelectorAll(":scope > :not(h1):not(.cinematic-bottom)");
-    animate(supporting, { opacity: [0, 1], y: [22, 0] }, { duration: 1, delay: stagger(0.1, { start: 0.55 }), ease: EASE });
+    const supporting = heroCopy.querySelectorAll(":scope > :not(h1)");
+    animate(supporting, { opacity: [0, 1], y: [24, 0] }, { duration: 1, delay: stagger(0.12, { start: 0.7 }), ease: EASE });
+  }
+  if (artFrame) animate(artFrame, { opacity: [0, 1], scale: [0.92, 1] }, { duration: 1.6, delay: 0.3, ease: EASE });
+
+  /* Hero scroll-linked 3D: the artwork tilts back into depth and zooms as it leaves the screen. */
+  if (hero && heroArt) {
+    scroll(
+      animate(heroArt, { y: [0, -70], rotateX: [0, 14], rotateY: [0, -8], scale: [1, 1.16] }, { ease: "linear" }),
+      { target: hero, offset: ["start start", "end start"] }
+    );
+  }
+  if (hero && heroCopy) {
+    scroll(animate(heroCopy, { y: [0, -90], opacity: [1, 0.2] }, { ease: "linear" }), { target: hero, offset: ["start start", "end start"] });
+  }
+  const contours = document.querySelector(".hero-contours");
+  if (hero && contours) {
+    scroll(animate(contours, { y: [0, 220], rotate: [0, 8] }, { ease: "linear" }), { target: hero, offset: ["start start", "end start"] });
   }
 
-  /* Scroll is the camera: landscape recedes, the house approaches, and the doorway becomes the next scene. */
-  if (hero && house) {
-    scroll(progress => {
-      const p = clamp(progress, 0, 1);
-      const scale = 1 + p * 1.75;
-      house.style.setProperty("--house-scale", scale.toFixed(3));
-      house.style.setProperty("--house-rx", `${(-p * 7).toFixed(2)}deg`);
-      house.style.setProperty("--house-ry", `${(-8 + p * 8).toFixed(2)}deg`);
-      house.style.top = `${51 - p * 7}%`;
-      house.style.opacity = String(1 - Math.max(0, (p - .82) / .18) * .9);
-      const sky = document.querySelector(".cinematic-sky");
-      const ridge1 = document.querySelector(".ridge-one");
-      const ridge2 = document.querySelector(".ridge-two");
-      const fieldBack = document.querySelector(".field-back");
-      const fieldFront = document.querySelector(".field-front");
-      if (sky) sky.style.transform = `scale(${(1.08 + p * .22).toFixed(3)}) translateY(${(-p * 5).toFixed(2)}%)`;
-      if (ridge1) ridge1.style.transform = `translate3d(0,${(-p * 38).toFixed(1)}px,0) scale(${(1 + p * .14).toFixed(3)})`;
-      if (ridge2) ridge2.style.transform = `translate3d(0,${(-p * 65).toFixed(1)}px,0) scale(${(1 + p * .22).toFixed(3)})`;
-      if (fieldBack) fieldBack.style.transform = `perspective(800px) rotateX(${(p * 8).toFixed(2)}deg) translateY(${p * 45}px) scale(${(1 + p * .32).toFixed(3)})`;
-      if (fieldFront) fieldFront.style.transform = `perspective(600px) rotateX(${(p * 14).toFixed(2)}deg) translateY(${p * 95}px) scale(${(1 + p * .65).toFixed(3)})`;
-      houseParts.forEach((part, i) => { part.style.setProperty("--depth-shift", `${p * (i + 1) * 1.8}px`); });
-      if (heroCopy) {
-        heroCopy.style.opacity = String(1 - Math.max(0, (p - .2) / .62) * .9);
-        heroCopy.style.transform = `translate3d(0,${(-p * 75).toFixed(1)}px,0)`;
-      }
-      const overlay = document.querySelector(".cinematic-overlay");
-      if (overlay) overlay.style.opacity = String(1 - p * .42);
-      const progressBar = document.querySelector(".scroll-progress");
-      if (progressBar) progressBar.style.opacity = String(1 - p * .45);
-    }, { target: hero, offset: ["start start", "end start"] });
-  }
-
-  /* Interior threshold comes into focus like crossing a doorway. */
-  const arrival = document.querySelector(".arrival-section");
-  const arrivalVisual = document.querySelector(".arrival-visual");
-  const arrivalFrame = document.querySelector(".arrival-doorframe");
-  if (arrival && arrivalVisual) {
-    scroll(progress => {
-      const p = clamp(progress, 0, 1);
-      arrivalVisual.style.setProperty("--arrival-progress", p.toFixed(3));
-      if (arrivalFrame) arrivalFrame.style.transform = `translate3d(0,${(20 - p * 20).toFixed(1)}px,${p * 55}px) scale(${(.93 + p * .07).toFixed(3)})`;
-      const light = arrival.querySelector(".arrival-light");
-      if (light) light.style.transform = `translate3d(${(-p * 22).toFixed(1)}px,${(p * 16).toFixed(1)}px,0) scale(${(1 + p * .12).toFixed(3)})`;
-    }, { target: arrival, offset: ["start end", "end start"] });
-  }
-
-  /* Pointer parallax on the house, subtle enough not to compete with the scroll camera. */
-  if (house && finePointer.matches) {
-    const stage = document.querySelector(".cinematic-stage");
-    stage?.addEventListener("pointermove", event => {
-      const rect = stage.getBoundingClientRect();
-      const dx = (event.clientX - rect.left - rect.width / 2) / rect.width;
-      const dy = (event.clientY - rect.top - rect.height / 2) / rect.height;
-      house.style.setProperty("--house-rx", `${-dy * 4}deg`);
-      house.style.setProperty("--house-ry", `${-8 + dx * 7}deg`);
+  /* Pointer 3D: the artwork leans toward the cursor. Pointer devices only. */
+  if (artFrame && finePointer.matches) {
+    const frameWrap = artFrame.parentElement;
+    frameWrap.addEventListener("pointermove", event => {
+      const rect = artFrame.getBoundingClientRect();
+      const dx = (event.clientX - (rect.left + rect.width / 2)) / rect.width;
+      const dy = (event.clientY - (rect.top + rect.height / 2)) / rect.height;
+      animate(artFrame, { rotateX: -dy * 9, rotateY: dx * 12 }, { duration: 0.6, ease: "easeOut" });
     });
-    stage?.addEventListener("pointerleave", () => {
-      house.style.setProperty("--house-rx", "0deg");
-      house.style.setProperty("--house-ry", "-8deg");
+    frameWrap.addEventListener("pointerleave", () => {
+      animate(artFrame, { rotateX: 0, rotateY: 0 }, { duration: 0.9, ease: EASE });
     });
-  }
-
-  /* Header state tracks the journey without hijacking normal navigation. */
-  const header = document.querySelector(".site-header");
-  if (header) {
-    const updateHeader = () => header.classList.toggle("is-scrolled", window.scrollY > 24);
-    window.addEventListener("scroll", updateHeader, { passive: true });
-    updateHeader();
   }
 
   /* Terrain stage: the process section's layered contour map explodes apart as you scroll
