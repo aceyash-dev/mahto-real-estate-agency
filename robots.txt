@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Sitemap: https://mahto-real-estate-agency.vercel.app/sitemap.xml
