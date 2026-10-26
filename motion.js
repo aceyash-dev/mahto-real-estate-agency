@@ -1,113 +1,187 @@
-/* Scroll motion for the homepage: reveals, stagger, parallax, zoom and 3D tilt.
-   Runs only when JS is available and the visitor has not asked for reduced motion. */
+/* Homepage motion: Lenis smooth scrolling + Motion (motion.dev) for reveals,
+   scroll-linked parallax, zoom and 3D tilt, and a kinetic hero intro.
+   Runs only when JS is available and the visitor has not asked for reduced motion.
+   Ownership rule: an element is either scroll-linked or revealed, never both. */
 (() => {
   "use strict";
 
-  const root = document.documentElement;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  if (reduceMotion.matches || !("IntersectionObserver" in window)) return;
+  if (reduceMotion.matches || !window.Lenis || !window.Motion) return;
 
+  const root = document.documentElement;
   root.classList.add("js-motion");
-  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-  /* Stagger: children of [data-stagger] reveal one after another. */
-  document.querySelectorAll("[data-stagger]").forEach(group => {
-    Array.from(group.children).forEach((child, index) => {
-      if (!child.hasAttribute("data-reveal")) child.setAttribute("data-reveal", "up");
-      child.style.setProperty("--reveal-delay", `${index * 90}ms`);
-    });
+  const { animate, inView, scroll, stagger } = window.Motion;
+  const EASE = [0.2, 0.7, 0.2, 1];
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+  const wide = window.matchMedia("(min-width: 781px)");
+
+  /* Smooth scrolling. Lenis drives native scroll, so Motion's scroll() keeps working. */
+  const lenis = new window.Lenis({
+    duration: 1.2,
+    easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    smoothWheel: true,
+    touchMultiplier: 1.2
+  });
+  const raf = time => { lenis.raf(time); requestAnimationFrame(raf); };
+  requestAnimationFrame(raf);
+
+  /* In-page anchors go through Lenis so they land below the sticky header. */
+  document.addEventListener("click", event => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link) return;
+    const id = link.getAttribute("href").slice(1);
+    if (!id) return;
+    if (id === "top") {
+      event.preventDefault();
+      lenis.scrollTo(0);
+      return;
+    }
+    const target = document.getElementById(id);
+    if (!target) return;
+    event.preventDefault();
+    lenis.scrollTo(target, { offset: -84 });
+    history.replaceState(null, "", `#${id}`);
   });
 
-  /* Topography lines: normalise path length so the draw-in animation is consistent. */
+  /* Scroll progress bar, linked to page scroll. */
+  const progressBar = document.querySelector(".scroll-progress");
+  if (progressBar) scroll(animate(progressBar, { scaleX: [0, 1] }, { ease: "linear" }));
+
+  /* Split the hero headline into words so each one rises into place. */
+  function splitWords(element) {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    textNodes.forEach(node => {
+      const fragment = document.createDocumentFragment();
+      node.textContent.split(/(\s+)/).forEach(part => {
+        if (!part) return;
+        if (/^\s+$/.test(part)) { fragment.append(part); return; }
+        const word = document.createElement("span");
+        word.className = "word";
+        const inner = document.createElement("span");
+        inner.className = "word-inner";
+        inner.textContent = part;
+        word.append(inner);
+        fragment.append(word);
+      });
+      node.replaceWith(fragment);
+    });
+    return element.querySelectorAll(".word-inner");
+  }
+
+  /* Hero intro: headline words rise, then supporting copy and the artwork settle in. */
+  const hero = document.querySelector(".hero");
+  const heroCopy = document.querySelector(".hero-copy");
+  const heroArt = document.querySelector(".hero-art");
+  const artFrame = document.querySelector(".art-frame");
+  const headline = document.querySelector(".hero h1");
+
+  if (headline) {
+    const words = splitWords(headline);
+    animate(words, { y: ["110%", "0%"] }, { duration: 1.15, delay: stagger(0.06, { start: 0.2 }), ease: EASE });
+  }
+  if (heroCopy) {
+    const supporting = heroCopy.querySelectorAll(":scope > :not(h1)");
+    animate(supporting, { opacity: [0, 1], y: [24, 0] }, { duration: 1, delay: stagger(0.12, { start: 0.7 }), ease: EASE });
+  }
+  if (artFrame) animate(artFrame, { opacity: [0, 1], scale: [0.92, 1] }, { duration: 1.6, delay: 0.3, ease: EASE });
+
+  /* Scroll-linked hero: the artwork drifts, tilts into depth and zooms as it leaves the screen. */
+  if (hero && heroArt) {
+    scroll(
+      animate(heroArt, { y: [0, -70], rotateX: [0, 10], rotateY: [0, -6], scale: [1, 1.14] }, { ease: "linear" }),
+      { target: hero, offset: ["start start", "end start"] }
+    );
+  }
+  if (hero && heroCopy) {
+    scroll(
+      animate(heroCopy, { y: [0, -90], opacity: [1, 0.2] }, { ease: "linear" }),
+      { target: hero, offset: ["start start", "end start"] }
+    );
+  }
+  const contours = document.querySelector(".hero-contours");
+  if (hero && contours) {
+    scroll(
+      animate(contours, { y: [0, 220], rotate: [0, 6] }, { ease: "linear" }),
+      { target: hero, offset: ["start start", "end start"] }
+    );
+  }
+
+  /* Reveals: [data-reveal] elements animate in once, when they enter the viewport.
+     Children of [data-stagger] groups are revealed in sequence. */
+  const variants = {
+    up: { y: [48, 0] },
+    left: { x: [-60, 0] },
+    right: { x: [60, 0] },
+    zoom: { scale: [0.88, 1] }
+  };
+
+  function reveal(element, delay = 0) {
+    const variant = variants[element.dataset.reveal] || variants.up;
+    animate(element, { opacity: [0, 1], ...variant }, { duration: 1.05, delay, ease: EASE });
+  }
+
+  document.querySelectorAll("[data-stagger]").forEach(group => {
+    const children = Array.from(group.children);
+    children.forEach(child => {
+      if (!child.hasAttribute("data-reveal")) child.setAttribute("data-reveal", "up");
+    });
+    if (group.closest(".hero")) return;
+    inView(group, () => children.forEach((child, index) => reveal(child, index * 0.09)), { amount: 0.12 });
+  });
+
+  document.querySelectorAll("[data-reveal]").forEach(element => {
+    if (element.closest("[data-stagger]")) return;
+    inView(element, () => reveal(element), { amount: 0.15 });
+  });
+
+  /* Topography lines draw in on load. The stroke animation itself lives in motion.css. */
   document.querySelectorAll(".topography path").forEach((path, index) => {
     path.setAttribute("pathLength", "1");
     path.style.setProperty("--i", String(index));
   });
-
-  /* One-shot reveals when an element enters the viewport. */
-  const revealObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add("is-visible");
-      observer.unobserve(entry.target);
-    });
-  }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
-  document.querySelectorAll("[data-reveal]").forEach(el => revealObserver.observe(el));
-
-  /* Scroll-driven effects, batched into one animation frame per scroll. */
-  const hero = document.querySelector(".hero");
-  const heroArt = document.querySelector(".hero-art");
-  const heroCopy = document.querySelector(".hero-copy");
-  const contours = document.querySelector(".hero-contours");
-  const progressBar = document.querySelector(".scroll-progress");
-  const parallaxEls = document.querySelectorAll("[data-parallax]");
-  const zoomEls = document.querySelectorAll("[data-zoom]");
-  const tiltEls = document.querySelectorAll("[data-tilt]");
-  const narrow = window.matchMedia("(max-width: 780px)");
-
-  let queued = false;
-
-  function update() {
-    queued = false;
-    const y = window.scrollY;
-    const vh = window.innerHeight;
-    const scrollable = document.documentElement.scrollHeight - vh;
-
-    if (progressBar) progressBar.style.transform = `scaleX(${scrollable > 0 ? (y / scrollable).toFixed(4) : 0})`;
-
-    /* Hero: the art drifts up, tilts into depth and zooms as the visitor scrolls past it. */
-    if (hero) {
-      const p = clamp(y / (hero.offsetHeight * 0.85), 0, 1);
-      if (heroArt) {
-        heroArt.style.transform =
-          `translate3d(0, ${(-y * 0.08).toFixed(1)}px, 0) rotateX(${(p * 10).toFixed(2)}deg) rotateY(${(-p * 6).toFixed(2)}deg) scale(${(1 + p * 0.14).toFixed(3)})`;
-      }
-      if (heroCopy) {
-        heroCopy.style.transform = `translate3d(0, ${(-y * 0.18).toFixed(1)}px, 0)`;
-        heroCopy.style.opacity = (1 - p * 0.75).toFixed(3);
-      }
-    }
-
-    /* Background contours move at a different rate for layered depth. */
-    if (contours) {
-      contours.style.transform = `translate3d(0, ${(y * 0.22).toFixed(1)}px, 0) rotate(${(y * 0.02).toFixed(2)}deg)`;
-    }
-
-    /* Generic parallax: offset grows with distance from the viewport centre. */
-    parallaxEls.forEach(el => {
-      const rect = el.getBoundingClientRect();
-      const distance = rect.top + rect.height / 2 - vh / 2;
-      const speed = parseFloat(el.dataset.parallax) || 0.1;
-      el.style.transform = `translate3d(0, ${(-distance * speed).toFixed(1)}px, 0)`;
-    });
-
-    /* Zoom: elements grow from small and settle into place as they enter. */
-    zoomEls.forEach(el => {
-      const rect = el.getBoundingClientRect();
-      const progress = clamp((vh - rect.top) / (vh * 0.55), 0, 1);
-      el.style.transform = `scale(${(0.35 + 0.65 * progress).toFixed(3)}) rotate(${((1 - progress) * -40).toFixed(1)}deg)`;
-    });
-
-    /* 3D tilt: cards fold up from their top edge as they come into view. Skipped on narrow screens. */
-    if (!narrow.matches) {
-      tiltEls.forEach(el => {
-        const rect = el.getBoundingClientRect();
-        const progress = clamp((vh - rect.top) / (vh * 0.9), 0, 1);
-        el.style.transform = `perspective(1200px) rotateX(${((1 - progress) * 12).toFixed(2)}deg)`;
-      });
-    }
-  }
-
-  function requestUpdate() {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(update);
-  }
-
-  window.addEventListener("scroll", requestUpdate, { passive: true });
-  window.addEventListener("resize", requestUpdate);
-  update();
-
-  /* Let the hero lines draw in once the first frame has painted. */
   requestAnimationFrame(() => window.setTimeout(() => root.classList.add("is-loaded"), 120));
+
+  /* Parallax: elements drift at their own speed relative to the page. */
+  document.querySelectorAll("[data-parallax]").forEach(element => {
+    const speed = parseFloat(element.dataset.parallax) || 0.1;
+    scroll(
+      animate(element, { y: [-speed * 320, speed * 320] }, { ease: "linear" }),
+      { target: element, offset: ["start end", "end start"] }
+    );
+  });
+
+  /* Zoom: the monogram grows from small and rotates into place. */
+  document.querySelectorAll("[data-zoom]").forEach(element => {
+    scroll(
+      animate(element, { scale: [0.35, 1], rotate: [-40, 0] }, { ease: "linear" }),
+      { target: element, offset: ["start end", "center center"] }
+    );
+  });
+
+  /* 3D tilt: pathway cards fold up from their top edge as they come into view. Desktop only. */
+  document.querySelectorAll("[data-tilt]").forEach(element => {
+    if (!wide.matches) return;
+    scroll(
+      animate(element, { rotateX: [14, 0] }, { ease: "linear" }),
+      { target: element, offset: ["start end", "center center"] }
+    );
+  });
+
+  /* Magnetic primary buttons: they lean slightly toward the pointer. Pointer devices only. */
+  if (finePointer.matches) {
+    document.querySelectorAll(".button-primary").forEach(button => {
+      button.addEventListener("pointermove", event => {
+        const rect = button.getBoundingClientRect();
+        const x = (event.clientX - (rect.left + rect.width / 2)) * 0.22;
+        const y = (event.clientY - (rect.top + rect.height / 2)) * 0.3;
+        animate(button, { x, y }, { duration: 0.35, ease: "easeOut" });
+      });
+      button.addEventListener("pointerleave", () => {
+        animate(button, { x: 0, y: 0 }, { duration: 0.6, ease: EASE });
+      });
+    });
+  }
 })();

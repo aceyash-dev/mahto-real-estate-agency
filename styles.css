@@ -116,7 +116,7 @@ h1 em, h2 em, h3 em, .footer-tagline em { color: var(--brass); font-weight: 400;
 .art-frame::before { position: absolute; inset: 0; content: ""; background: linear-gradient(150deg, rgb(23 61 50 / 7%), transparent 48%, rgb(167 123 82 / 12%)); }
 .art-frame::after { position: absolute; top: 0; right: 0; width: 1px; height: 100%; background: rgb(23 61 50 / 10%); content: ""; }
 .topography { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .82; stroke: var(--forest); stroke-width: 1; }
-.art-stamp { position: absolute; z-index: 2; top: 36px; left: 34px; display: flex; align-items: center; gap: 13px; color: var(--forest); }
+.art-stamp { position: absolute; z-index: 2; bottom: 96px; left: 34px; display: flex; align-items: center; gap: 13px; color: var(--forest); }
 .art-stamp > span:first-child { display: grid; width: 45px; height: 45px; place-items: center; border: 1px solid rgb(23 61 50 / 35%); border-radius: 50%; font-family: var(--display); font-size: 1.15rem; }
 .art-stamp > span:last-child { font-size: .67rem; font-weight: 700; letter-spacing: .1em; line-height: 1.5; text-transform: uppercase; }
 .art-caption { position: absolute; z-index: 2; right: 0; bottom: 0; left: 0; display: flex; justify-content: space-between; gap: 12px; padding: 20px 23px; border-top: 1px solid rgb(23 61 50 / 18%); color: var(--forest); font-size: .64rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }

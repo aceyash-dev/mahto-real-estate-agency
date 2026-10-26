@@ -1,8 +1,8 @@
-/* Scroll motion layer for the homepage.
-   Progressive: motion.js adds .js-motion only when JS runs and the visitor has not
-   asked for reduced motion. Without that class, everything renders in its final state. */
+/* Motion layer for the homepage. Motion (motion.js) and Lenis (vendor/) do the animating.
+   Hidden starting states are only applied when .js-motion is set, so content stays
+   visible without JS or with reduced motion. */
 
-/* Scroll progress bar */
+/* Scroll progress bar, driven by motion.js */
 .scroll-progress {
   position: fixed; z-index: 60; top: 0; left: 0;
   width: 100%; height: 2px;
@@ -11,33 +11,32 @@
   pointer-events: none;
 }
 
-/* Scroll-triggered reveals.
-   Reveals animate the individual `translate` and `scale` properties, so scroll-driven
-   `transform` values (parallax, tilt, zoom) compose with them and never fight over one property. */
-.js-motion [data-reveal] {
-  opacity: 0;
-  translate: 0 46px;
-  transition:
-    opacity .9s cubic-bezier(.2, .7, .2, 1),
-    translate 1.05s cubic-bezier(.2, .7, .2, 1),
-    scale 1.05s cubic-bezier(.2, .7, .2, 1);
-  transition-delay: var(--reveal-delay, 0ms);
-}
-.js-motion [data-reveal="left"] { translate: -60px 0; }
-.js-motion [data-reveal="right"] { translate: 60px 0; }
-.js-motion [data-reveal="zoom"] { translate: 0 0; scale: .86; }
-.js-motion [data-reveal].is-visible { opacity: 1; translate: 0 0; scale: 1; }
+/* Starting states, so nothing flashes before motion.js runs */
+.js-motion [data-reveal] { opacity: 0; }
+.js-motion .hero-copy > :not(h1) { opacity: 0; }
+.js-motion .art-frame { opacity: 0; }
 
-/* 3D depth: scroll-driven transforms need a perspective context */
+/* Lenis owns smooth scrolling. Turn off the CSS smooth scroll that would fight it. */
+html.js-motion { scroll-behavior: auto !important; }
+
+/* Headline word mask: words rise from behind a clip line */
+.js-motion .hero h1 .word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: .12em;
+  margin-bottom: -.12em;
+}
+.js-motion .hero h1 .word-inner { display: inline-block; will-change: transform; }
+
+/* 3D depth for the hero */
 .js-motion .hero-layout { perspective: 1400px; }
-.js-motion .hero-art,
-.js-motion .hero-copy,
+.js-motion .hero-art { transform-style: preserve-3d; will-change: transform; }
 .js-motion .hero-contours,
 .js-motion [data-parallax],
 .js-motion [data-zoom],
 .js-motion [data-tilt] { will-change: transform; }
 .js-motion [data-tilt] { transform-origin: 50% 0; }
-.js-motion .hero-art { transform-style: preserve-3d; }
 
 /* Topography lines draw themselves in on load */
 .js-motion .topography path {
@@ -48,17 +47,15 @@
 }
 .js-motion.is-loaded .topography path { stroke-dashoffset: 0; }
 
-/* Keep the pathway hover lift affordance readable on top of the tilt */
-.js-motion .pathway-card { transition: box-shadow .4s ease; }
-.js-motion .pathway-card:hover { box-shadow: 0 24px 50px -30px rgb(23 61 50 / 35%); }
+/* Pathway cards lift with a soft shadow on hover, on top of the scroll tilt */
+.js-motion .pathway-card { transition: box-shadow .5s ease; }
+.js-motion .pathway-card:hover { box-shadow: 0 26px 52px -30px rgb(23 61 50 / 35%); }
 
 @media (max-width: 780px) {
-  .js-motion [data-reveal="left"], .js-motion [data-reveal="right"] { translate: 0 40px; }
   .js-motion [data-tilt] { transform: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .scroll-progress { display: none; }
-  .js-motion [data-reveal],
   .js-motion .topography path { transition: none !important; }
 }
