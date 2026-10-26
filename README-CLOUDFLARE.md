@@ -8,7 +8,7 @@
 - Secret `ADMIN_API_TOKEN` protects admin listing operations.
 
 ## Deploy
-`npm install` then `npm run deploy`. For Git builds, configure output directory `.` and no build command (or `npm install` as the build command if needed for bundling).
+Git-connected Pages build settings: build command `npm install`, output directory `.`, root directory `/`. Set `DATABASE_URL` in Cloudflare Pages environment variables to the Neon pooled connection string. For a manual deploy, run `npm install` then `npm run deploy`.
 
 ## Admin API
 Use `Authorization: Bearer <ADMIN_API_TOKEN>`. Create with POST fields `slug`, `title`, `property_type`, and `listing_source`. New listings remain inactive and unapproved. PATCH with action `approve` explicitly publishes; `pause`, `archive`, and `sold` are supported. Edits automatically unpublish until approved again. DELETE archives. There is not yet a visual admin dashboard.
