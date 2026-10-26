@@ -38,3 +38,26 @@ CREATE TABLE IF NOT EXISTS properties (
 CREATE INDEX IF NOT EXISTS properties_public_listing_idx ON properties (is_active, admin_approved, featured, created_at DESC);
 CREATE INDEX IF NOT EXISTS properties_location_idx ON properties (district, locality);
 -- No sample or dummy properties are inserted. New records stay unpublished until explicitly approved and activated.
+
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS city VARCHAR(120);
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS pin_code VARCHAR(12);
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS general_location VARCHAR(220);
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS availability_status VARCHAR(32) NOT NULL DEFAULT 'Available' CHECK (availability_status IN ('Available','Under Discussion','Reserved','Sold'));
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS boundaries TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS additional_charges TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS seller_information TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS verification_status VARCHAR(32) NOT NULL DEFAULT 'Seller-provided' CHECK (verification_status IN ('Seller-provided','Document-reviewed','Independently verified'));
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS verification_scope TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS verified_at DATE;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS rera_project_number VARCHAR(100);
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS rera_agent_number VARCHAR(100);
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS approvals_information TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS map_url TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS photos JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS documents JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS listing_source VARCHAR(300);
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS source_authority_notes TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS properties_public_filters_idx ON properties (district, city, locality, pin_code, property_type, availability_status, asking_price);
