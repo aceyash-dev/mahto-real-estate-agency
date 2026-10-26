@@ -73,11 +73,12 @@
       const params = new URLSearchParams();
       if (searchForm) new FormData(searchForm).forEach((v, k) => { if (String(v).trim()) params.set(k, String(v).trim()); });
       const response = await fetch(`/api/properties?${params.toString()}`, { headers: { Accept: "application/json" } });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 503) { showEmpty("The listings service is not connected yet. Please contact the agency directly while the database is being configured."); return; }
       if (!response.ok) throw new Error("Listings endpoint unavailable");
-      const data = await response.json();
       renderListings(Array.isArray(data.properties) ? data.properties : []);
     } catch (_) {
-      showEmpty("There are no published listings to display right now. You can still contact the agency with your requirement.");
+      showEmpty("We could not load listings right now. Please contact the agency with your requirement or try again later.");
     }
   }
   if (searchForm && searchFeedback) {
