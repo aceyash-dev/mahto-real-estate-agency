@@ -356,3 +356,15 @@ h1 em, h2 em, h3 em, .footer-tagline em { color: var(--brass); font-weight: 400;
   .why-grid article + article { border-top: 1px solid #D7D0C3; }
   .footer-legal-note { gap: 10px; }
 }
+
+
+/* Global interaction polish */
+html { scrollbar-width: thin; scrollbar-color: var(--forest) var(--stone); }
+* { -webkit-tap-highlight-color: transparent; }
+::selection { color: var(--forest-deep); background: #DCC3A8; }
+::-moz-selection { color: var(--forest-deep); background: #DCC3A8; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--stone); border-radius: 999px; }
+::-webkit-scrollbar-thumb { background: var(--forest); border: 2px solid var(--stone); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--brass); }
+::-webkit-scrollbar-corner { background: var(--stone); }
