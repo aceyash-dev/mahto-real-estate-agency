@@ -119,3 +119,69 @@ html.js-motion { scroll-behavior: auto !important; }
   .js-motion .process-heading { position: static; }
 }
 .js-motion [data-chars] .word-chars { display: inline-block; white-space: nowrap; }
+
+/* ---------- Walkthrough: a house built from 3D planes, entered on scroll ---------- */
+/* Without JS the section is a plain stack: the plan hidden, the walls hidden, cards shown in a grid. */
+.walk { position: relative; }
+.walk-track { position: relative; }
+.walk-sticky { position: relative; height: 100vh; overflow: hidden; background: #F4F1EA; }
+.walk-head { position: absolute; top: 88px; left: 0; right: 0; z-index: 20; pointer-events: none; }
+.walk-title { font-size: clamp(2.2rem, 4.4vw, 3.8rem); max-width: 14ch; }
+.walk-title em { color: var(--brass); }
+.walk-steps { display: flex; gap: 22px; margin: 22px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.walk-steps li { transition: color .4s ease; }
+.walk-steps li.is-active { color: var(--forest); }
+
+/* Plain fallback: stack the rooms as cards */
+.walk-scene { height: 100%; }
+.house { position: relative; width: 100%; height: 100%; }
+.floor, .wall, .ceiling { display: none; }
+.room-card {
+  position: relative; margin: 0 0 18px; padding: 26px;
+  background: white; border: 1px solid var(--line); border-radius: var(--radius-panel);
+}
+.room-card h3 { font-size: clamp(1.6rem, 2.6vw, 2.2rem); margin-bottom: 12px; }
+.room-card h3 em { color: var(--brass); }
+.room-card p:not(.eyebrow) { color: var(--muted); font-size: .9rem; margin-bottom: 16px; }
+
+/* Enhanced: pinned 3D house */
+.js-motion .walk-track { height: 420vh; }
+.js-motion .walk-sticky { position: sticky; top: 0; }
+.js-motion .walk-sticky { perspective: 1400px; perspective-origin: 50% 40%; }
+.js-motion .walk-scene { position: absolute; inset: 0; margin: 0; max-width: none; }
+.js-motion .house { position: absolute; inset: 0; transform-style: preserve-3d; }
+.js-motion .room-card { position: absolute; left: 50%; top: 50%; width: min(230px, 21vw); margin: 0; opacity: 0; will-change: transform, opacity; transform-style: preserve-3d; box-shadow: 0 30px 60px -30px rgb(23 61 50 / 40%); }
+.js-motion .floor, .js-motion .wall, .js-motion .ceiling { display: block; position: absolute; left: 50%; top: 50%; width: 600px; height: 600px; margin: -300px 0 0 -300px; transform-style: preserve-3d; }
+.js-motion .floor { background: #E9E4D7; border: 1px solid rgb(23 61 50 / 20%); }
+.js-motion .plan { width: 100%; height: 100%; fill: none; stroke: var(--forest); stroke-width: 3; }
+.js-motion .plan text { fill: var(--muted); font-size: 22px; font-weight: 700; letter-spacing: .12em; stroke: none; }
+.js-motion .plan-window { stroke: var(--brass); stroke-width: 6; }
+.js-motion .wall { background: #EDE7DA; border: 1px solid rgb(23 61 50 / 22%); backface-visibility: visible; }
+.js-motion .wall-back { transform-origin: 50% 100%; }
+.js-motion .wall-left { transform-origin: 0 100%; }
+.js-motion .wall-right { transform-origin: 100% 100%; }
+.js-motion .wall-front { transform-origin: 50% 100%; background: #F7F3EA; }
+.js-motion .door { position: absolute; left: 50%; bottom: 0; width: 18%; height: 40%; margin-left: -9%; background: var(--forest); border-radius: 6px 6px 0 0; }
+.js-motion .ceiling { background: #FAF7F0; border: 1px solid rgb(23 61 50 / 14%); }
+.js-motion .walk-steps li { opacity: .55; }
+
+@media (max-width: 780px) {
+  .js-motion .walk-track { height: auto; }
+  .js-motion .walk-sticky { position: relative; height: auto; overflow: visible; padding: 88px 0 40px; }
+  .js-motion .walk-head { position: static; }
+  .js-motion .walk-scene { position: static; }
+  .js-motion .house { position: static; }
+  .js-motion .floor, .js-motion .wall, .js-motion .ceiling, .js-motion .walk-steps { display: none; }
+  .js-motion .room-card { position: static; width: auto; opacity: 1; transform: none !important; margin-bottom: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .js-motion .walk-track { height: auto; }
+  .js-motion .walk-sticky { position: relative; height: auto; overflow: visible; padding: 88px 0 40px; }
+  .js-motion .walk-head { position: static; }
+  .js-motion .house { position: static; }
+  .js-motion .walk-scene { position: static; }
+  .js-motion .floor, .js-motion .wall, .js-motion .ceiling, .js-motion .walk-steps { display: none; }
+  .js-motion .room-card { position: static; width: auto; opacity: 1; transform: none !important; margin-bottom: 16px; }
+}
+.js-motion .walk-steps li.is-active { opacity: 1; }
+.walk .ceiling { display: none; }

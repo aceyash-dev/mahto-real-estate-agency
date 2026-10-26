@@ -255,6 +255,82 @@
     scroll(animate(element, { rotateX: [14, 0] }, { ease: "linear" }), { target: element, offset: ["start end", "center center"] });
   });
 
+  /* Walkthrough: a house built from 3D planes, entered on scroll.
+     One progress value (0 to 1) drives four stages:
+       01 Plan   the floor plan lies flat
+       02 Raise  the walls fold up from the floor edges
+       03 Enter  the front wall swings open and the camera passes through the door
+       04 Rooms  the room cards float in, facing the viewer */
+  const walk = document.querySelector(".walk");
+  const walkHouse = document.querySelector(".walk .house");
+  if (walk && walkHouse && wide.matches) {
+    const H = 300;
+    const walls = {
+      back: document.querySelector(".wall-back"),
+      left: document.querySelector(".wall-left"),
+      right: document.querySelector(".wall-right"),
+      front: document.querySelector(".wall-front")
+    };
+    const floor = document.querySelector(".walk .floor");
+    const cards = Array.from(document.querySelectorAll(".walk .room-card"));
+    /* Card slots inside the room, in house space: a 2x2 grid floating above the floor. */
+    const slots = [[-190, -150], [190, -150], [-190, 150], [190, 150]];
+    const steps = Array.from(document.querySelectorAll(".walk-steps li"));
+    const clamp01 = v => Math.min(Math.max(v, 0), 1);
+    const range = (p, a, b) => clamp01((p - a) / (b - a));
+    const ease = t => t * t * (3 - 2 * t);
+    const lerpStep = (p, a, b) => ease(range(p, a, b));
+
+    /* Hinge each wall to a floor edge; fold angle 0 lies flat, 90 stands upright. */
+    if (walls.back) walls.back.style.transformOrigin = "50% 100%";
+    if (walls.left) walls.left.style.transformOrigin = "100% 50%";
+    if (walls.right) walls.right.style.transformOrigin = "0% 50%";
+    if (walls.front) walls.front.style.transformOrigin = "50% 0%";
+    if (walls.back) walls.back.style.transform = `translate3d(0, ${-2 * H}px, 0) rotateX(0deg)`;
+    if (walls.left) walls.left.style.transform = `translate3d(${-2 * H}px, 0, 0) rotateY(0deg)`;
+    if (walls.right) walls.right.style.transform = `translate3d(${2 * H}px, 0, 0) rotateY(0deg)`;
+    if (walls.front) walls.front.style.transform = `translate3d(0, ${2 * H}px, 0) rotateX(0deg)`;
+
+    function renderWalk(p) {
+      const raise = lerpStep(p, 0.16, 0.42);
+      const enter = lerpStep(p, 0.42, 0.62);
+      const houseRx = 56 * raise;
+      const houseRz = -18 * raise;
+      const houseS = 1 + 0.22 * enter;
+      const houseZ = 280 * enter;
+      walkHouse.style.transform =
+        `translate3d(${(290 * raise).toFixed(1)}px, ${(90 * raise).toFixed(1)}px, ${houseZ.toFixed(1)}px) rotateX(${houseRx.toFixed(2)}deg) rotateZ(${houseRz.toFixed(2)}deg) scale(${houseS.toFixed(3)})`;
+
+      if (walls.back) walls.back.style.transform = `translate3d(0, ${-2 * H}px, 0) rotateX(${(-90 * raise).toFixed(2)}deg)`;
+      if (walls.left) walls.left.style.transform = `translate3d(${-2 * H}px, 0, 0) rotateY(${(90 * raise).toFixed(2)}deg)`;
+      if (walls.right) walls.right.style.transform = `translate3d(${2 * H}px, 0, 0) rotateY(${(-90 * raise).toFixed(2)}deg)`;
+      /* The front wall stays flat as a threshold while the house rises, then swings open to let the camera through. */
+      if (walls.front) {
+        walls.front.style.transform = `translate3d(0, ${2 * H}px, 0) rotateX(${(90 * enter).toFixed(2)}deg)`;
+        walls.front.style.opacity = (1 - lerpStep(p, 0.56, 0.66)).toFixed(3);
+      }
+
+      if (floor) floor.style.opacity = (1 - 0.35 * enter).toFixed(3);
+
+      cards.forEach((card, i) => {
+        const start = 0.6 + i * 0.07;
+        const c = lerpStep(p, start, start + 0.2);
+        const [x, y] = slots[i] || [0, 0];
+        const z = 220 - (1 - c) * 260;
+        card.style.opacity = c.toFixed(3);
+        /* Counter-rotate so each card faces the viewer while the house tilts around it. */
+        card.style.transform =
+          `translate3d(-50%, -50%, 0) translate3d(${x}px, ${y}px, ${z.toFixed(1)}px) rotateZ(${(-houseRz).toFixed(2)}deg) rotateX(${(-houseRx).toFixed(2)}deg)`;
+      });
+
+      const idx = p < 0.16 ? 0 : p < 0.42 ? 1 : p < 0.6 ? 2 : 3;
+      steps.forEach((li, i) => li.classList.toggle("is-active", i === idx));
+    }
+
+    scroll(renderWalk, { target: walk, offset: ["start start", "end end"] });
+    renderWalk(0);
+  }
+
   /* Magnetic primary buttons. Pointer devices only. */
   if (finePointer.matches) {
     document.querySelectorAll(".button-primary").forEach(button => {
