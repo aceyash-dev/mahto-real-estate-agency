@@ -1,8 +1,17 @@
 {
   "name": "mahto-real-estate-agency",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Homepage and serverless API for Mahto Real Estate Agency",
-  "engines": { "node": ">=20" },
-  "dependencies": { "pg": "^8.13.1" }
+  "description": "Mahto Real Estate Agency static site and Cloudflare Pages Functions backend",
+  "scripts": {
+    "dev": "wrangler pages dev .",
+    "deploy": "wrangler pages deploy . --project-name=mahto-real-estate-agency"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2"
+  }
 }
