@@ -40,18 +40,20 @@
     searchForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const formData = new FormData(searchForm);
-      const min = Number(formData.get("budgetMin"));
-      const max = Number(formData.get("budgetMax"));
+      const minRaw = String(formData.get("budgetMin") || "");
+      const maxRaw = String(formData.get("budgetMax") || "");
+      const min = Number(minRaw);
+      const max = Number(maxRaw);
 
-      if (formData.get("budgetMin") && min < 0) {
+      if (minRaw && min < 0) {
         searchFeedback.textContent = "Enter a minimum budget of zero or more.";
         return;
       }
-      if (formData.get("budgetMax") && max < 0) {
+      if (maxRaw && max < 0) {
         searchFeedback.textContent = "Enter a maximum budget of zero or more.";
         return;
       }
-      if (formData.get("budgetMin") && formData.get("budgetMax") && max < min) {
+      if (minRaw && maxRaw && max < min) {
         searchFeedback.textContent = "The maximum budget must be greater than or equal to the minimum budget.";
         return;
       }
@@ -63,8 +65,8 @@
       if (location) summary.push("in " + location);
       searchFeedback.textContent = (summary.length ? "Your search: " + summary.join(" ") + ". " : "") +
         "There are no active, agency-approved listings published on this page yet. Share your requirement below to contact the agency.";
-      document.querySelector("#contact").scrollIntoView({ behavior: "smooth", block: "start" });
-      const interest = document.querySelector('[name="interest"]');
+
+      const interest = document.querySelector('#enquiry-form [name="interest"]');
       if (interest && propertyType) {
         const map = {
           "Plot / Land": "Plot / land",
@@ -78,9 +80,11 @@
       const locationInput = document.querySelector('#enquiry-form [name="location"]');
       if (locationInput && location) locationInput.value = location;
       const budgetInput = document.querySelector('#enquiry-form [name="budget"]');
-      if (budgetInput && (formData.get("budgetMin") || formData.get("budgetMax"))) {
-        budgetInput.value = [formData.get("budgetMin") ? "₹" + formData.get("budgetMin") : "", formData.get("budgetMax") ? "₹" + formData.get("budgetMax") : ""].filter(Boolean).join(" - ");
+      if (budgetInput && (minRaw || maxRaw)) {
+        const range = [minRaw ? "₹" + minRaw : "", maxRaw ? "₹" + maxRaw : ""].filter(Boolean).join(" - ");
+        budgetInput.value = range;
       }
+      document.querySelector("#contact").scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 
@@ -97,6 +101,14 @@
   const enquiryForm = document.querySelector("#enquiry-form");
   const formStatus = document.querySelector("#form-status");
   if (enquiryForm && formStatus) {
+    const budgetInput = enquiryForm.querySelector('[name="budget"]');
+    if (budgetInput) {
+      budgetInput.type = "text";
+      budgetInput.removeAttribute("min");
+      budgetInput.setAttribute("inputmode", "text");
+      budgetInput.placeholder = "e.g. ₹20–30 lakh";
+    }
+
     enquiryForm.addEventListener("submit", (event) => {
       event.preventDefault();
       formStatus.replaceChildren();
