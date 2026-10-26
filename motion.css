@@ -59,3 +59,63 @@ html.js-motion { scroll-behavior: auto !important; }
   .scroll-progress { display: none; }
   .js-motion .topography path { transition: none !important; }
 }
+
+/* Headline character flips (anime.js). The h2 provides the perspective. */
+.js-motion [data-chars] { perspective: 700px; }
+.js-motion [data-chars] .char {
+  display: inline-block;
+  opacity: 0;
+  transform-origin: 50% 100%;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+/* Terrain stage: layered contour map in 3D, beside the process steps (desktop) */
+.terrain { display: none; }
+.js-motion .terrain {
+  display: block;
+  position: relative;
+  height: 380px;
+  margin-top: 56px;
+  perspective: 1100px;
+}
+.terrain-stack {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(64deg) rotateZ(-24deg);
+}
+.terrain-layer {
+  position: absolute; inset: 6% 4%;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+.terrain-layer svg { width: 100%; height: 100%; overflow: visible; }
+.terrain-layer path {
+  fill: none;
+  stroke: var(--forest);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.terrain-layer .slab {
+  fill: #EFEBE2;
+  stroke: rgb(23 61 50 / 22%);
+}
+.terrain-labels {
+  position: absolute; top: 0; right: 0;
+  display: grid; gap: 8px;
+  margin: 0; padding: 0; list-style: none;
+  color: var(--muted);
+  font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  text-align: right;
+}
+.terrain-labels li { transition: color .4s ease; }
+.terrain-labels li.is-active { color: var(--forest); }
+
+/* Sticky heading keeps the terrain in view while the steps scroll past (desktop) */
+.js-motion .process-heading { position: sticky; top: 112px; align-self: start; }
+
+@media (max-width: 780px) {
+  .js-motion .terrain { display: none; }
+  .js-motion .process-heading { position: static; }
+}
+.js-motion [data-chars] .word-chars { display: inline-block; white-space: nowrap; }
