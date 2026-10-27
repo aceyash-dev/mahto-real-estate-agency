@@ -640,7 +640,9 @@ function init() {
   const head = section.querySelector(".walk-head");
   const cardRanges = [[0.56, 0.69], [0.69, 0.80], [0.80, 0.90], [0.90, 1.01]];
 
-  let vw = 0, vh = 0;
+  let vw = 0, vh = 0, baseFov = 50, mx = 0, my = 0, tx = 0, ty = 0;
+  window.addEventListener("pointermove", e => { if (e.pointerType === "touch") return; tx = e.clientX / innerWidth - 0.5; ty = e.clientY / innerHeight - 0.5; }, { passive: true });
+  const hint = document.createElement("div"); hint.className = "walk-hint"; hint.setAttribute("aria-hidden", "true"); hint.innerHTML = "<span>Scroll to enter</span><i></i>"; sticky.appendChild(hint);
   function resize(force) {
     const w = sticky.clientWidth, h = sticky.clientHeight;
     if (!w || !h) return;
@@ -648,7 +650,7 @@ function init() {
     vw = w; vh = h;
     renderer.setSize(w, h, false);
     const asp = w / h;
-    camera.aspect = asp; camera.fov = asp >= 1.6 ? 50 : Math.min(82, 50 + (1.6 - asp) * 32); camera.updateProjectionMatrix();
+    camera.aspect = asp; baseFov = asp >= 1.6 ? 50 : Math.min(82, 50 + (1.6 - asp) * 32); camera.fov = baseFov; camera.updateProjectionMatrix();
   }
   new ResizeObserver(() => resize(false)).observe(sticky);
   window.addEventListener("orientationchange", () => setTimeout(() => resize(true), 250));
@@ -686,7 +688,12 @@ function init() {
       posCurve.getPoint(u, camPos); tgtCurve.getPoint(u, camTgt);
       const sway = smooth(0.48, 0.56, p) * 0.016;
       camPos.y += Math.sin(now / 900) * sway; camPos.x += Math.cos(now / 1300) * sway;
+      mx += (tx - mx) * (1 - Math.exp(-dt * 3)); my += (ty - my) * (1 - Math.exp(-dt * 3));
+      const pk = lerp(5, 0.35, smooth(0.3, 0.5, p));
+      camTgt.x += mx * pk; camTgt.y -= my * pk * 0.6;
       camera.position.copy(camPos); camera.lookAt(camTgt);
+      const kick = Math.sin(Math.PI * smooth(0.36, 0.5, p)) * 9;
+      const fv = baseFov + kick; if (Math.abs(camera.fov - fv) > 0.02) { camera.fov = fv; camera.updateProjectionMatrix(); }
 
       doorPivot.rotation.y = smooth(0.38, 0.46, p) * 1.85;
       gateL.rotation.y = -smooth(0.24, 0.31, p) * 1.6; gateR.rotation.y = smooth(0.24, 0.31, p) * 1.6;
@@ -698,6 +705,7 @@ function init() {
       const mp = motes.geometry.attributes.position; for (let i = 0; i < MN; i++) { mp.setY(i, mp.getY(i) + Math.sin(now / 2000 + moteSeed[i]) * 0.0008); mp.setX(i, mp.getX(i) + Math.cos(now / 2600 + moteSeed[i]) * 0.0006); } mp.needsUpdate = true;
       let nd = 99; shaftPts.forEach(v => { nd = Math.min(nd, camera.position.distanceTo(v)); }); shaftMat.opacity = 0.16 * smooth(1.6, 4.5, nd);
       const gold = smooth(0.0, 1.0, p), night = smooth(0.44, 0.7, p);
+      renderer.toneMappingExposure = lerp(0.82, 0.96, night); hint.style.opacity = (1 - smooth(0.0, 0.05, p)).toFixed(3);
       sky.material.uniforms.top.value.lerpColors(C_T0, C_T1, gold); sky.material.uniforms.hor.value.lerpColors(C_H0, C_H1, gold); scene.fog.color.copy(sky.material.uniforms.hor.value);
       sun.color.lerpColors(C_S0, C_S1, gold); sun.intensity = lerp(3.0, 2.4, gold); hemi.intensity = lerp(0.55, 0.4, gold);
       lampLights.forEach(l => { l.intensity = l.userData.k * (0.55 + 0.9 * night); });
@@ -707,7 +715,7 @@ function init() {
 
       renderer.render(scene, camera);
 
-      frames++;
+      frames++; if (frames === 3) canvas.classList.add("is-ready");
       if (frames > 4 && !healthDone) { healthDone = true; if (checkBlank()) { fallback("blank render"); return; } }
       if (frames > 20 && !window.__WALK3D_TEST) { ema = ema * 0.94 + (dt * 1000) * 0.06; if (ema > 38) { if (++slow > 50) downgrade(); } else slow = Math.max(0, slow - 2); }
 
