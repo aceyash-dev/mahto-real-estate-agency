@@ -70,118 +70,37 @@ html.js-motion { scroll-behavior: auto !important; }
   will-change: transform, opacity;
 }
 
-/* Terrain stage: layered contour map in 3D, beside the process steps (desktop) */
-.terrain { display: none; }
-.js-motion .terrain {
-  display: block;
-  position: relative;
-  height: 380px;
-  margin-top: 56px;
-  perspective: 1100px;
-}
-.terrain-stack {
-  position: absolute; inset: 0;
-  transform-style: preserve-3d;
-  transform: rotateX(64deg) rotateZ(-24deg);
-}
-.terrain-layer {
-  position: absolute; inset: 6% 4%;
-  transform-style: preserve-3d;
-  will-change: transform, opacity;
-}
-.terrain-layer svg { width: 100%; height: 100%; overflow: visible; }
-.terrain-layer path {
-  fill: none;
-  stroke: var(--forest);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-.terrain-layer .slab {
-  fill: #EFEBE2;
-  stroke: rgb(23 61 50 / 22%);
-}
-.terrain-labels {
-  position: absolute; top: 0; right: 0;
-  display: grid; gap: 8px;
-  margin: 0; padding: 0; list-style: none;
-  color: var(--muted);
-  font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-  text-align: right;
-}
-.terrain-labels li { transition: color .4s ease; }
-.terrain-labels li.is-active { color: var(--forest); }
-
-/* Sticky heading keeps the terrain in view while the steps scroll past (desktop) */
-.js-motion .process-heading { position: sticky; top: 112px; align-self: start; }
-
-@media (max-width: 780px) {
-  .js-motion .terrain { display: none; }
-  .js-motion .process-heading { position: static; }
-}
 .js-motion [data-chars] .word-chars { display: inline-block; white-space: nowrap; }
 
-/* ---------- Walkthrough: a house built from 3D planes, entered on scroll ---------- */
-/* Without JS the section is a plain stack: the plan hidden, the walls hidden, cards shown in a grid. */
+/* ---------- Walkthrough: base is a plain card stack; walk3d.js adds .is-3d for the WebGL scene ---------- */
 .walk { position: relative; }
-.walk-track { position: relative; }
-.walk-sticky { position: relative; height: 100vh; overflow: hidden; background: #F4F1EA; }
-.walk-head { position: absolute; top: 88px; left: 0; right: 0; z-index: 20; pointer-events: none; }
-.walk-title { font-size: clamp(2.2rem, 4.4vw, 3.8rem); max-width: 14ch; }
+.walk-sticky { position: relative; background: #F4F1EA; padding: 88px 0 40px; }
+.walk-head { margin-bottom: 28px; }
+.walk-title { font-size: clamp(2.2rem, 4.4vw, 3.8rem); max-width: 16ch; }
 .walk-title em { color: var(--brass); }
-.walk-steps { display: flex; gap: 22px; margin: 22px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-.walk-steps li { transition: color .4s ease; }
-.walk-steps li.is-active { color: var(--forest); }
-
-/* Plain fallback: stack the rooms as cards */
-.walk-scene { height: 100%; }
-.house { position: relative; width: 100%; height: 100%; }
-.floor, .wall, .ceiling { display: none; }
-.room-card {
-  position: relative; margin: 0 0 18px; padding: 26px;
-  background: white; border: 1px solid var(--line); border-radius: var(--radius-panel);
-}
+.walk-cap, .walk-steps, .walk-canvas { display: none; }
+.room-card { position: relative; margin: 0 0 18px; padding: 26px; background: white; border: 1px solid var(--line); border-radius: var(--radius-panel); }
 .room-card h3 { font-size: clamp(1.6rem, 2.6vw, 2.2rem); margin-bottom: 12px; }
 .room-card h3 em { color: var(--brass); }
 .room-card p:not(.eyebrow) { color: var(--muted); font-size: .9rem; margin-bottom: 16px; }
 
-/* Enhanced: pinned 3D house */
-.js-motion .walk-track { height: 420vh; }
-.js-motion .walk-sticky { position: sticky; top: 0; }
-.js-motion .walk-sticky { perspective: 1400px; perspective-origin: 50% 40%; }
-.js-motion .walk-scene { position: absolute; inset: 0; margin: 0; max-width: none; }
-.js-motion .house { position: absolute; inset: 0; transform-style: preserve-3d; }
-.js-motion .room-card { position: absolute; left: 50%; top: 50%; width: min(230px, 21vw); margin: 0; opacity: 0; will-change: transform, opacity; transform-style: preserve-3d; box-shadow: 0 30px 60px -30px rgb(23 61 50 / 40%); }
-.js-motion .floor, .js-motion .wall, .js-motion .ceiling { display: block; position: absolute; left: 50%; top: 50%; width: 600px; height: 600px; margin: -300px 0 0 -300px; transform-style: preserve-3d; }
-.js-motion .floor { background: #E9E4D7; border: 1px solid rgb(23 61 50 / 20%); }
-.js-motion .plan { width: 100%; height: 100%; fill: none; stroke: var(--forest); stroke-width: 3; }
-.js-motion .plan text { fill: var(--muted); font-size: 22px; font-weight: 700; letter-spacing: .12em; stroke: none; }
-.js-motion .plan-window { stroke: var(--brass); stroke-width: 6; }
-.js-motion .wall { background: #EDE7DA; border: 1px solid rgb(23 61 50 / 22%); backface-visibility: visible; }
-.js-motion .wall-back { transform-origin: 50% 100%; }
-.js-motion .wall-left { transform-origin: 0 100%; }
-.js-motion .wall-right { transform-origin: 100% 100%; }
-.js-motion .wall-front { transform-origin: 50% 100%; background: #F7F3EA; }
-.js-motion .door { position: absolute; left: 50%; bottom: 0; width: 18%; height: 40%; margin-left: -9%; background: var(--forest); border-radius: 6px 6px 0 0; }
-.js-motion .ceiling { background: #FAF7F0; border: 1px solid rgb(23 61 50 / 14%); }
-.js-motion .walk-steps li { opacity: .55; }
-
+.is-3d .walk-track { height: 520vh; }
+.is-3d .walk-sticky { position: sticky; top: 0; height: 100vh; overflow: hidden; padding: 0; background: #EDE8DB; }
+.is-3d .walk-canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+.is-3d .walk-sticky::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgb(23 61 50 / 16%) 100%); }
+.is-3d .walk-head { position: absolute; top: 108px; left: 0; right: 0; z-index: 5; margin: 0; pointer-events: none; }
+.is-3d .walk-cap { display: block; position: absolute; z-index: 5; left: 0; right: 0; bottom: 17vh; margin: 0; text-align: center; opacity: 0; pointer-events: none; font-family: var(--display); font-size: clamp(2.2rem, 5.4vw, 4.8rem); line-height: 1; letter-spacing: -.02em; color: var(--forest); text-shadow: 0 2px 30px #EDE8DB, 0 0 8px #EDE8DB; will-change: transform, opacity; }
+.is-3d .walk-steps { display: flex; position: absolute; z-index: 5; left: 50%; bottom: 28px; transform: translateX(-50%); gap: 22px; margin: 0; padding: 10px 18px; list-style: none; border-radius: 99px; background: rgb(244 241 234 / 82%); backdrop-filter: blur(8px); color: var(--muted); font-size: .66rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+.is-3d .walk-steps li { opacity: .5; transition: opacity .4s ease, color .4s ease; }
+.is-3d .walk-steps li.is-active { opacity: 1; color: var(--forest); }
+.is-3d .walk-scene { position: absolute; inset: 0; z-index: 6; margin: 0; max-width: none; pointer-events: none; }
+.is-3d .house { position: absolute; inset: 0; }
+.is-3d .room-card { position: absolute; top: calc(50% - 150px); width: min(360px, 38vw); margin: 0; opacity: 0; visibility: hidden; box-shadow: 0 40px 80px -36px rgb(23 61 50 / 55%); will-change: transform, opacity; }
+.is-3d .room-card:nth-child(odd) { left: 6vw; }
+.is-3d .room-card:nth-child(even) { right: 6vw; }
 @media (max-width: 780px) {
-  .js-motion .walk-track { height: auto; }
-  .js-motion .walk-sticky { position: relative; height: auto; overflow: visible; padding: 88px 0 40px; }
-  .js-motion .walk-head { position: static; }
-  .js-motion .walk-scene { position: static; }
-  .js-motion .house { position: static; }
-  .js-motion .floor, .js-motion .wall, .js-motion .ceiling, .js-motion .walk-steps { display: none; }
-  .js-motion .room-card { position: static; width: auto; opacity: 1; transform: none !important; margin-bottom: 16px; }
+  .is-3d .walk-head { top: 84px; }
+  .is-3d .walk-cap { bottom: 30vh; }
+  .is-3d .walk-steps { gap: 12px; padding: 8px 12px; font-size: .56rem; bottom: 16px; }
+  .is-3d .room-card { top: auto; bottom: 64px; left: 14px !important; right: 14px !important; width: auto; padding: 20px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .js-motion .walk-track { height: auto; }
-  .js-motion .walk-sticky { position: relative; height: auto; overflow: visible; padding: 88px 0 40px; }
-  .js-motion .walk-head { position: static; }
-  .js-motion .house { position: static; }
-  .js-motion .walk-scene { position: static; }
-  .js-motion .floor, .js-motion .wall, .js-motion .ceiling, .js-motion .walk-steps { display: none; }
-  .js-motion .room-card { position: static; width: auto; opacity: 1; transform: none !important; margin-bottom: 16px; }
-}
-.js-motion .walk-steps li.is-active { opacity: 1; }
-.walk .ceiling { display: none; }
