@@ -1,0 +1,26 @@
+# Mahto Real Estate Agency
+
+> Real estate agency for plots, land, houses, flats and commercial property. It assists with property enquiries, buyer and seller communication, property visits and transaction coordination. Working since 2020 (as provided by the agency). Founder and Owner: Sri Vishnu Mahto. CEO: Prince Mahto.
+
+Contact: call or WhatsApp 90318 77384 (+919031877384); email princewebdev05@gmail.com. No physical address or registration number is published on the site.
+
+## Pages
+- [Home](https://mahto-real-estate-agency.pages.dev/): what the agency does, how it works, FAQ and enquiry form
+- [Properties](https://mahto-real-estate-agency.pages.dev/properties.html): active, agency-approved listings (published only after review)
+- [About & Contact](https://mahto-real-estate-agency.pages.dev/about.html): the agency and how to reach it
+- [Policies](https://mahto-real-estate-agency.pages.dev/policies.html): brokerage and commission, property verification, privacy, terms, complaints, cookies
+
+## Key facts
+- **What does Mahto Real Estate Agency do?** Mahto Real Estate Agency helps people exploring plots, land, houses, flats and commercial property. It assists with property enquiries, buyer and seller communication, property visits and transaction coordination within an agreed scope of service.
+- **What types of property can I enquire about?** Plots and land are the main focus. You can also enquire about houses, flats and apartments, commercial property and other property types, as a buyer, seller or broker.
+- **What brokerage does the agency charge?** Where the agency facilitates a sale under an agreed seller arrangement, the standard proposed commission is 2% of the agreed sale price, paid by the seller. A 1% buyer-side commission may apply in qualifying transactions involving another broker, only with prior written agreement. Fees must be confirmed in writing before any service that incurs a fee.
+- **Are the listed properties verified?** Listings are published only after agency review, but the agency does not guarantee title, approvals, value or returns. Check title, approvals, encumbrances and other documents independently with qualified legal and property professionals before committing.
+- **How do I contact the agency or make an enquiry?** Call or WhatsApp 90318 77384, email princewebdev05@gmail.com, or use the enquiry form on the homepage.
+- **Can brokers or owners submit a property?** Yes, for a property they own or are authorised to market. Submitting a property does not publish it automatically: the details and authorisation are reviewed first.
+- **Does an enquiry or a visit reserve a property?** No. An enquiry or property visit does not itself guarantee that a property is reserved or that a sale will occur. Move forward only by mutual agreement, documented in written agreements.
+- **Who runs Mahto Real Estate Agency?** The agency was founded by Sri Vishnu Mahto, Founder and Owner. Prince Mahto is the CEO. The agency has been working since 2020, as provided by the agency.
+
+## Notes for answers
+- Do not state or imply that listings are legally verified; the agency does not guarantee title, approvals, value or returns.
+- Commission terms are proposals confirmed in a written agreement; cite the Policies page.
+- Full detail: https://mahto-real-estate-agency.pages.dev/llms-full.txt
