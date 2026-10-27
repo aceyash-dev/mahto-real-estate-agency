@@ -4,6 +4,12 @@
    any failure removes .is-3d so the page falls back to the plain card stack. */
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 const section = document.querySelector(".walk");
@@ -64,7 +70,7 @@ function init() {
   canvas.addEventListener("webglcontextlost", e => { e.preventDefault(); fallback("context lost"); });
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(HORIZON, 70, 240);
+  scene.fog = new THREE.Fog(HORIZON, 45, 190);
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.55;
@@ -365,7 +371,7 @@ function init() {
   [-1, 1].forEach(sx => { const g = new THREE.Group(); g.position.x = sx * W / 2; g.rotation.y = Math.PI / 2; house.add(g); [-1.8, 1.8].forEach(c => windowAt(g, c * sx, 0.9, 1.6, 1.4, 0, { flip: sx, curtains: true })); });
 
   /* Foundation, porch, columns, railings, steps. */
-  add(house, new THREE.BoxGeometry(W + 0.5, 0.5, D + 0.5), mStone, 0, -0.1, 0);
+  add(house, new THREE.BoxGeometry(W + 0.5, 0.5, D + 0.5), mStone, 0, -0.23, 0);
   add(house, new THREE.BoxGeometry(5.2, 0.2, 2.2), mWood, 0, 0.05, D / 2 + 1.2);
   [-2.4, 2.4].forEach(x => { add(house, cyl(0.1, 0.12, WH - 0.2, 12), mTrim, x, 1.6, D / 2 + 2.1); add(house, new THREE.BoxGeometry(0.34, 0.16, 0.34), mTrim, x, 0.28, D / 2 + 2.1); add(house, new THREE.BoxGeometry(0.3, 0.12, 0.3), mTrim, x, WH - 0.08, D / 2 + 2.1); });
   add(house, new THREE.BoxGeometry(5.4, 0.16, 0.22), mTrim, 0, WH + 0.02, D / 2 + 2.1);
@@ -395,7 +401,7 @@ function init() {
     const vent = add(house, cyl(0.38, 0.38, 0.06, 20), mTrim, s * (W / 2 + 0.03), WH + 1.0, 0, false); vent.rotation.z = Math.PI / 2;
     const vin = add(house, cyl(0.28, 0.28, 0.07, 20), mDark, s * (W / 2 + 0.05), WH + 1.0, 0, false); vin.rotation.z = Math.PI / 2;
   });
-  const chim = add(house, new THREE.BoxGeometry(0.95, 3.0, 0.95), M(0xffffff, { map: rep(tBrick, 1, 2) }), 3.6, WH + 1.9, -1.4);
+  const mChim = M(0xffffff, { map: rep(tBrick, 1, 2) }); const chim = add(house, new THREE.BoxGeometry(0.95, 3.0, 0.95), mChim, 3.6, WH + 1.9, -1.4);
   add(house, new THREE.BoxGeometry(1.15, 0.14, 1.15), mStone, 3.6, WH + 3.42, -1.4, false);
   [-0.2, 0.2].forEach(o => add(house, cyl(0.12, 0.12, 0.34, 10), M(0x7a4a36), 3.6 + o, WH + 3.65, -1.4, false));
   /* Interior ceiling plane (fades with the roof for the dollhouse view). */
@@ -592,15 +598,15 @@ function init() {
   for (let i = 0; i < 7; i++) { const g = new THREE.Group(), wl = new THREE.Group(), wr = new THREE.Group(); [wl, wr].forEach((w, k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.28), wingMat); m.position.x = (k ? 0.45 : -0.45); w.add(m); g.add(w); }); g.add(new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 6), wingMat)).rotation.x = Math.PI / 2; g.userData = { wl, wr, i }; g.scale.setScalar(1.4); scene.add(g); birds.push(g); }
   /* Trees: broadleaf (trunk + jittered foliage blobs) and conifers (stacked cones). */
   const NT = TIER[tier].trees, nB = Math.round(NT * 0.5), nC = NT - nB;
-  const leafGeo = new THREE.IcosahedronGeometry(1, 1); { const p = leafGeo.attributes.position; for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) * (0.85 + rnd() * 0.3), p.getY(i) * (0.85 + rnd() * 0.3), p.getZ(i) * (0.85 + rnd() * 0.3)); leafGeo.computeVertexNormals(); }
-  const trunkM = new THREE.InstancedMesh(cyl(0.18, 0.32, 3, 7), M(0x6b4f35, { roughness: 1 }), nB + nC), foliage = new THREE.InstancedMesh(leafGeo, M(0xffffff, { roughness: 0.9 }), nB * 4), coneA = new THREE.InstancedMesh(new THREE.ConeGeometry(1.7, 3.2, 8), M(0xffffff, { roughness: 0.9 }), nC * 3);
+  const leafGeo = new THREE.IcosahedronGeometry(1, 4); { const p = leafGeo.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const n = 1 + 0.2 * Math.sin(v.x * 5.1 + v.y * 3.3) * Math.cos(v.z * 4.7 + v.x * 2.1) + 0.1 * Math.sin(v.y * 11 + v.z * 9) + 0.05 * Math.sin(v.x * 23 + v.z * 17); p.setXYZ(i, v.x * n, v.y * n * 0.9, v.z * n); } leafGeo.computeVertexNormals(); }
+  const trunkM = new THREE.InstancedMesh(cyl(0.18, 0.32, 3, 7), M(0x6b4f35, { roughness: 1 }), nB + nC), foliage = new THREE.InstancedMesh(leafGeo, M(0xffffff, { roughness: 0.9 }), nB * 7), coneA = new THREE.InstancedMesh(new THREE.ConeGeometry(1.7, 3.2, 8), M(0xffffff, { roughness: 0.9 }), nC * 3);
   let ti = 0, fi = 0, ci = 0, tries = 0;
   const okPos = (x, z) => !(Math.abs(x) < 21 && Math.abs(z) < 19) && !(Math.abs(x) < 8 && z > 8 && z < 60);
   while (ti < nB + nC && tries++ < 4000) {
     const a = rnd() * Math.PI * 2, r = 24 + Math.pow(rnd(), 0.7) * 150, x = Math.cos(a) * r, z = Math.sin(a) * r; if (!okPos(x, z)) continue;
     const s = rr(0.8, 1.7), broad = ti < nB;
     tmp.position.set(x, 1.5 * s, z); tmp.scale.setScalar(s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); trunkM.setMatrixAt(ti, tmp.matrix);
-    if (broad) for (let k = 0; k < 4; k++) { tmp.position.set(x + rr(-1.2, 1.2) * s, (3.4 + rnd() * 1.6) * s, z + rr(-1.2, 1.2) * s); tmp.scale.setScalar(rr(1.5, 2.3) * s); tmp.rotation.set(rnd(), rnd(), rnd()); tmp.updateMatrix(); foliage.setMatrixAt(fi, tmp.matrix); foliage.setColorAt(fi++, new THREE.Color().setHSL(0.28 + rnd() * 0.1, 0.38 + rnd() * 0.12, 0.28 + rnd() * 0.1)); }
+    if (broad) for (let k = 0; k < 7; k++) { tmp.position.set(x + rr(-1.5, 1.5) * s, (3.2 + rnd() * 2.2) * s, z + rr(-1.5, 1.5) * s); tmp.scale.setScalar(rr(1.0, 1.9) * s); tmp.rotation.set(rnd(), rnd(), rnd()); tmp.updateMatrix(); foliage.setMatrixAt(fi, tmp.matrix); foliage.setColorAt(fi++, new THREE.Color().setHSL(0.28 + rnd() * 0.1, 0.38 + rnd() * 0.12, 0.28 + rnd() * 0.1)); }
     else for (let k = 0; k < 3; k++) { tmp.position.set(x, (2.6 + k * 1.7) * s, z); tmp.scale.setScalar((1.25 - k * 0.3) * s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); coneA.setMatrixAt(ci, tmp.matrix); coneA.setColorAt(ci++, new THREE.Color().setHSL(0.4 + rnd() * 0.04, 0.35, 0.16 + rnd() * 0.07)); }
     ti++;
   }
@@ -612,6 +618,32 @@ function init() {
   [ceil].forEach(m => { m.castShadow = false; });
   roofs.forEach(() => {});
   house.traverse(o => { if (o.isMesh && o.material && (roofs.includes(o.material) || o.material === mRoof)) o.castShadow = false; });
+
+  /* ---------- Photographic PBR textures + HDR lighting (async; procedural versions are the fallback) ---------- */
+  const TL = new THREE.TextureLoader();
+  const ld = (f, rx, ry, srgb = true) => TL.load("assets/tex/" + f, t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = tier > 1 ? 8 : 2; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; });
+  const apply = (mat, o) => { Object.assign(mat, o); mat.needsUpdate = true; };
+  try {
+    apply(mFloor, { color: new THREE.Color(0xc4b294), map: ld("wood.jpg", 9, 11), bumpMap: ld("wood_b.jpg", 9, 11, false), bumpScale: 0.6, roughnessMap: ld("wood_r.jpg", 9, 11, false), roughness: 1 });
+    apply(mChim, { map: ld("brick.jpg", 1.4, 3), bumpMap: ld("brick_b.jpg", 1.4, 3, false), bumpScale: 2 });
+    apply(ground.material, { map: ld("grass.jpg", 140, 140), color: new THREE.Color(0xe6e4c8), roughness: 1 });
+    apply(lawn.material, { map: ld("grass.jpg", 9, 8), color: new THREE.Color(0xffffee), roughness: 1 });
+    new RGBELoader().load("assets/tex/sky.hdr", hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = pmrem.fromEquirectangular(hdr).texture; scene.environmentIntensity = 0.85; hdr.dispose(); });
+  } catch (_) { /* keep procedural look */ }
+
+  /* ---------- Post-processing (high tier): ambient occlusion + soft bloom ---------- */
+  let composer = null, gtao = null, bloom = null;
+  function makeComposer() {
+    try {
+      const w = sticky.clientWidth || 800, h = sticky.clientHeight || 500;
+      composer = new EffectComposer(renderer); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h);
+      composer.addPass(new RenderPass(scene, camera));
+      gtao = new GTAOPass(scene, camera, w, h); gtao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.4, thickness: 1.2, scale: 1.1, samples: 12 }); gtao.blendIntensity = 0.9; composer.addPass(gtao);
+      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.28, 0.7, 0.9); composer.addPass(bloom);
+      composer.addPass(new OutputPass());
+    } catch (e) { composer = null; }
+  }
+  if (tier === 2) makeComposer();
 
   /* ---------- Camera path ---------- */
   const keys = [
@@ -648,7 +680,7 @@ function init() {
     if (!w || !h) return;
     if (!force && w === vw && Math.abs(h - vh) < 140) return;
     vw = w; vh = h;
-    renderer.setSize(w, h, false);
+    renderer.setSize(w, h, false); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
     const asp = w / h;
     camera.aspect = asp; baseFov = asp >= 1.6 ? 50 : Math.min(82, 50 + (1.6 - asp) * 32); camera.fov = baseFov; camera.updateProjectionMatrix();
   }
@@ -664,7 +696,7 @@ function init() {
   let slow = 0, frames = 0, ema = 16, healthDone = false;
   function downgrade() {
     if (tier === 0) { fallback("too slow"); return; }
-    tier--; slow = 0;
+    tier--; slow = 0; if (composer && tier < 2) { composer = null; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, TIER[tier].dpr)); resize(true);
     if (tier === 0) { sun.castShadow = false; renderer.shadowMap.enabled = false; scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => { m.needsUpdate = true; }); }); }
   }
@@ -700,7 +732,7 @@ function init() {
       const solid = 0.1 + 0.9 * smooth(0.1, 0.26, p);
       roofs.forEach(m => { m.opacity = solid; m.depthWrite = solid > 0.98; }); mRoof.opacity = solid; mCeil.opacity = solid;
       const inside = smooth(0.46, 0.52, p);
-      scene.fog.near = lerp(70, 40, inside); scene.fog.far = lerp(240, 90, inside);
+      scene.fog.near = lerp(45, 40, inside); scene.fog.far = lerp(190, 90, inside);
       clouds.forEach((c, i) => { c.position.x += dt * (1.2 + i * 0.15); if (c.position.x > 230) c.position.x = -230; });
       const mp = motes.geometry.attributes.position; for (let i = 0; i < MN; i++) { mp.setY(i, mp.getY(i) + Math.sin(now / 2000 + moteSeed[i]) * 0.0008); mp.setX(i, mp.getX(i) + Math.cos(now / 2600 + moteSeed[i]) * 0.0006); } mp.needsUpdate = true;
       let nd = 99; shaftPts.forEach(v => { nd = Math.min(nd, camera.position.distanceTo(v)); }); shaftMat.opacity = 0.16 * smooth(1.6, 4.5, nd);
@@ -713,7 +745,7 @@ function init() {
       birds.forEach(b => { const i = b.userData.i, a = now / (9000 + i * 900) * Math.PI * 2 + i * 0.9, R = 30 + i * 3.5; b.position.set(Math.cos(a) * R, 17 + i * 1.6 + Math.sin(now / 1100 + i) * 0.6, Math.sin(a) * R * 0.8); b.rotation.y = -a; const f = Math.sin(now / 90 + i * 2) * 0.7; b.userData.wl.rotation.z = f; b.userData.wr.rotation.z = -f; b.visible = p < 0.4; });
       lanGlow.material.opacity = 0.5 + Math.sin(now / 700) * 0.06;
 
-      renderer.render(scene, camera);
+      if (composer) composer.render(dt); else renderer.render(scene, camera);
 
       frames++; if (frames === 3) canvas.classList.add("is-ready");
       if (frames > 4 && !healthDone) { healthDone = true; if (checkBlank()) { fallback("blank render"); return; } }
