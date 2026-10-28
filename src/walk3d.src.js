@@ -602,21 +602,74 @@ function init() {
   const smoke = []; for (let i = 0; i < 12; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tSmoke, transparent: true, depthWrite: false, opacity: 0.4 })); scene.add(sp); smoke.push(sp); }
   const birds = []; const wingMat = new THREE.MeshBasicMaterial({ color: 0x2a3a34, side: THREE.DoubleSide, fog: false });
   for (let i = 0; i < 7; i++) { const g = new THREE.Group(), wl = new THREE.Group(), wr = new THREE.Group(); [wl, wr].forEach((w, k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.28), wingMat); m.position.x = (k ? 0.45 : -0.45); w.add(m); g.add(w); }); g.add(new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 6), wingMat)).rotation.x = Math.PI / 2; g.userData = { wl, wr, i }; g.scale.setScalar(1.4); scene.add(g); birds.push(g); }
-  /* Trees: broadleaf (trunk + jittered foliage blobs) and conifers (stacked cones). */
+  /* Trees: broadleaf (tapered trunk, branches, dark core, hundreds of alpha leaf cards) and layered conifers. */
   const NT = TIER[tier].trees, nB = Math.round(NT * 0.5), nC = NT - nB;
-  const leafGeo = new THREE.IcosahedronGeometry(1, 4); { const p = leafGeo.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const n = 1 + 0.2 * Math.sin(v.x * 5.1 + v.y * 3.3) * Math.cos(v.z * 4.7 + v.x * 2.1) + 0.1 * Math.sin(v.y * 11 + v.z * 9) + 0.05 * Math.sin(v.x * 23 + v.z * 17); p.setXYZ(i, v.x * n, v.y * n * 0.9, v.z * n); } leafGeo.computeVertexNormals(); }
-  const trunkM = new THREE.InstancedMesh(cyl(0.18, 0.32, 3, 16), M(0x6b4f35, { roughness: 1 }), nB + nC), foliage = new THREE.InstancedMesh(leafGeo, M(0xffffff, { roughness: 0.9 }), nB * 7), coneA = new THREE.InstancedMesh(new THREE.ConeGeometry(1.7, 3.2, 24, 4), M(0xffffff, { roughness: 0.9 }), nC * 3);
-  let ti = 0, fi = 0, ci = 0, tries = 0;
+  const CARDS = tier === 2 ? 130 : tier === 1 ? 90 : 55;
+  const tLeaf = mk(256, (g, sz) => {
+    g.clearRect(0, 0, sz, sz);
+    for (let i = 0; i < 22; i++) {
+      const x = rr(30, sz - 30), y = rr(30, sz - 30), a = rnd() * 6.28, l = rr(22, 38), w = l * rr(0.38, 0.55);
+      g.save(); g.translate(x, y); g.rotate(a);
+      g.fillStyle = `hsl(${88 + rnd() * 32},${38 + rnd() * 22}%,${22 + rnd() * 22}%)`;
+      g.beginPath(); g.moveTo(-l, 0); g.quadraticCurveTo(0, -w * 1.7, l, 0); g.quadraticCurveTo(0, w * 1.7, -l, 0); g.fill();
+      g.strokeStyle = "rgba(235,245,190,0.3)"; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-l, 0); g.lineTo(l * 0.9, 0); g.stroke();
+      g.restore();
+    }
+  });
+  const treeBump = mk(256, (g, sz) => { g.fillStyle = "#888"; g.fillRect(0, 0, sz, sz); speckle(g, sz, sz, 5000, ["#444", "#ccc"], 3, 0.8); }, { repeat: true });
+  const coreGeo = new THREE.IcosahedronGeometry(1, 4); { const pp = coreGeo.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < pp.count; i++) { v.fromBufferAttribute(pp, i); const n = 1 + 0.18 * Math.sin(v.x * 4.1 + v.y * 3.3) * Math.cos(v.z * 4.7) + 0.06 * Math.sin(v.y * 13 + v.z * 11); pp.setXYZ(i, v.x * n, v.y * n * 0.85, v.z * n); } coreGeo.computeVertexNormals(); }
+  const trunkM = new THREE.InstancedMesh(cyl(0.12, 0.3, 3, 20), M(0x5b4632, { roughness: 1, bumpMap: treeBump, bumpScale: 3 }), nB + nC);
+  const branchG = cyl(0.03, 0.1, 1, 8); branchG.translate(0, 0.5, 0);
+  const branchM = new THREE.InstancedMesh(branchG, M(0x5b4632, { roughness: 1 }), nB * 5);
+  const core = new THREE.InstancedMesh(coreGeo, M(0xffffff, { roughness: 1 }), nB * 3);
+  const foliage = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.5, 1.5), new THREE.MeshStandardMaterial({ map: tLeaf, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.85, envMapIntensity: 0.4 }), nB * CARDS);
+  const coneA = new THREE.InstancedMesh(new THREE.ConeGeometry(1.5, 1.9, 28, 2), M(0xffffff, { roughness: 1, bumpMap: treeBump, bumpScale: 4 }), nC * 8);
+  let ti = 0, fi = 0, ci = 0, bi = 0, ki = 0, tries = 0; const col = new THREE.Color(), up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3(), q = new THREE.Quaternion();
   const okPos = (x, z) => !(Math.abs(x) < 21 && Math.abs(z) < 19) && !(Math.abs(x) < 8 && z > 8 && z < 60);
   while (ti < nB + nC && tries++ < 4000) {
     const a = rnd() * Math.PI * 2, r = 24 + Math.pow(rnd(), 0.7) * 150, x = Math.cos(a) * r, z = Math.sin(a) * r; if (!okPos(x, z)) continue;
     const s = rr(0.8, 1.7), broad = ti < nB;
     tmp.position.set(x, 1.5 * s, z); tmp.scale.setScalar(s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); trunkM.setMatrixAt(ti, tmp.matrix);
-    if (broad) for (let k = 0; k < 7; k++) { tmp.position.set(x + rr(-1.5, 1.5) * s, (3.2 + rnd() * 2.2) * s, z + rr(-1.5, 1.5) * s); tmp.scale.setScalar(rr(1.0, 1.9) * s); tmp.rotation.set(rnd(), rnd(), rnd()); tmp.updateMatrix(); foliage.setMatrixAt(fi, tmp.matrix); foliage.setColorAt(fi++, new THREE.Color().setHSL(0.25 + rnd() * 0.09, 0.34 + rnd() * 0.16, 0.12 + rnd() * 0.11)); }
-    else for (let k = 0; k < 3; k++) { tmp.position.set(x, (2.6 + k * 1.7) * s, z); tmp.scale.setScalar((1.25 - k * 0.3) * s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); coneA.setMatrixAt(ci, tmp.matrix); coneA.setColorAt(ci++, new THREE.Color().setHSL(0.38 + rnd() * 0.05, 0.32, 0.08 + rnd() * 0.07)); }
+    if (broad) {
+      const cy = 4.5 * s, hue = 0.24 + rnd() * 0.08;
+      for (let k = 0; k < 5; k++) { const ba = (k / 5) * 6.28 + rnd(), len = rr(1.3, 2.0) * s; dir.set(Math.cos(ba) * 0.7, 0.8, Math.sin(ba) * 0.7).normalize(); q.setFromUnitVectors(up, dir); tmp.position.set(x, 2.6 * s + rnd() * 0.6 * s, z); tmp.quaternion.copy(q); tmp.scale.set(s, len, s); tmp.updateMatrix(); branchM.setMatrixAt(bi++, tmp.matrix); }
+      tmp.quaternion.identity();
+      for (let k = 0; k < 3; k++) { tmp.position.set(x + rr(-0.9, 0.9) * s, cy + rr(-0.5, 0.7) * s, z + rr(-0.9, 0.9) * s); tmp.scale.setScalar(rr(1.2, 1.7) * s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); core.setMatrixAt(ki, tmp.matrix); core.setColorAt(ki++, col.setHSL(hue, 0.4, 0.1 + rnd() * 0.05)); }
+      for (let k = 0; k < CARDS; k++) {
+        const u = rnd() * 6.283, v = Math.acos(2 * rnd() - 1), rad = Math.cbrt(rnd());
+        tmp.position.set(x + Math.sin(v) * Math.cos(u) * 2.5 * rad * s, cy + Math.cos(v) * 1.9 * rad * s, z + Math.sin(v) * Math.sin(u) * 2.5 * rad * s);
+        tmp.scale.setScalar(rr(0.85, 1.5) * s); tmp.rotation.set(rnd() * 6.28, rnd() * 6.28, rnd() * 6.28); tmp.updateMatrix(); foliage.setMatrixAt(fi, tmp.matrix);
+        foliage.setColorAt(fi++, col.setHSL(hue + rr(-0.03, 0.03), rr(0.35, 0.6), 0.5 + Math.cos(v) * 0.14 + rr(-0.08, 0.08)));
+      }
+    } else {
+      const hue = 0.37 + rnd() * 0.05;
+      for (let k = 0; k < 8; k++) { const f = k / 7; tmp.position.set(x, (1.9 + k * 1.05) * s, z); tmp.scale.set((1.25 - f * 0.95) * s, 0.95 * s, (1.25 - f * 0.95) * s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); coneA.setMatrixAt(ci, tmp.matrix); coneA.setColorAt(ci++, col.setHSL(hue, 0.3, 0.07 + f * 0.04 + rnd() * 0.03)); }
+    }
     ti++;
   }
-  trunkM.count = ti; foliage.count = fi; coneA.count = ci; [trunkM, foliage, coneA].forEach(m => { m.castShadow = true; scene.add(m); }); tmp.scale.set(1, 1, 1);
+  trunkM.count = ti; foliage.count = fi; coneA.count = ci; branchM.count = bi; core.count = ki;
+  [trunkM, branchM, core, coneA].forEach(m => { m.castShadow = true; }); foliage.castShadow = false; [trunkM, branchM, core, foliage, coneA].forEach(m => { m.frustumCulled = false; scene.add(m); }); tmp.scale.set(1, 1, 1); tmp.quaternion.identity();
+
+  /* Grass: thousands of curved, tapered, wind-swayed blades. */
+  const windU = { value: 0 };
+  const NBL = [0, 16000, 46000][tier];
+  if (NBL) {
+    const sg = 4, vs = [], cs = [], ix = [];
+    for (let i = 0; i <= sg; i++) { const t = i / sg, y = t * 0.5, w = 0.03 * (1 - t * 0.9), bz = t * t * 0.14, c = 0.4 + 0.6 * t; vs.push(-w, y, bz, w, y, bz); cs.push(c * 0.7, c, c * 0.55, c * 0.7, c, c * 0.55); }
+    for (let i = 0; i < sg; i++) { const o = i * 2; ix.push(o, o + 1, o + 2, o + 1, o + 3, o + 2); }
+    const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.Float32BufferAttribute(vs, 3)); bg.setAttribute("color", new THREE.Float32BufferAttribute(cs, 3)); bg.setIndex(ix); bg.computeVertexNormals();
+    const bm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide, envMapIntensity: 0.3 });
+    bm.onBeforeCompile = sh => { sh.uniforms.uTime = windU; sh.vertexShader = "uniform float uTime;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n float hh = position.y; transformed.x += sin(uTime * 1.7 + instanceMatrix[3].x * 0.6 + instanceMatrix[3].z * 0.4) * 0.07 * hh * 2.0; transformed.z += cos(uTime * 1.3 + instanceMatrix[3].z * 0.5) * 0.04 * hh * 2.0;"); };
+    const blades = new THREE.InstancedMesh(bg, bm, NBL); let n = 0, g = 0;
+    while (n < NBL && g++ < NBL * 6) {
+      const inLawn = rnd() < 0.6, x = inLawn ? rr(-17, 17) : rr(-42, 42), z = inLawn ? rr(-15, 15) : rr(-40, 40);
+      if (Math.abs(x) < 7.2 && z > -5.6 && z < 5.4) continue; if (Math.abs(x) < 1.5 && z > 4) continue; if (x > 8.4 && x < 11.4 && z > 4) continue;
+      if (Math.hypot(x + 12.5, z - 6) < 3.4) continue;
+      tmp.position.set(x, 0, z); tmp.rotation.set(rr(-0.15, 0.15), rnd() * 6.28, rr(-0.15, 0.15)); tmp.scale.set(rr(0.8, 1.3), rr(0.4, 0.95), 1); tmp.updateMatrix(); blades.setMatrixAt(n, tmp.matrix);
+      blades.setColorAt(n++, col.setHSL(rr(0.2, 0.27), rr(0.35, 0.55), rr(0.28, 0.5)));
+    }
+    blades.count = n; blades.frustumCulled = false; scene.add(blades); tmp.scale.set(1, 1, 1); tmp.rotation.set(0, 0, 0);
+  }
 
   /* Freeze static transforms; ceiling/roof shouldn't block sun through windows. */
   scene.traverse(o => { if (o.isMesh || o.isGroup) { let anim = false, p = o; while (p) { if (p.userData && p.userData.anim) anim = true; p = p.parent; } if (!anim && !o.isSprite) { o.updateMatrix(); o.matrixAutoUpdate = false; } } });
@@ -764,6 +817,7 @@ function init() {
       lampLights.forEach(l => { l.intensity = l.userData.k * (0.3 + 0.6 * night); });
       smoke.forEach((sp, i) => { const t = ((now / 7000 + i / smoke.length) % 1); sp.position.set(3.6 + t * 1.6 + Math.sin(i) * 0.15, WH + 3.9 + t * 5, -1.4 + t * 0.6); sp.scale.setScalar(0.6 + t * 3.2); sp.material.opacity = 0.42 * Math.sin(t * Math.PI) * (1 - t * 0.4); });
       birds.forEach(b => { const i = b.userData.i, a = now / (9000 + i * 900) * Math.PI * 2 + i * 0.9, R = 30 + i * 3.5; b.position.set(Math.cos(a) * R, 17 + i * 1.6 + Math.sin(now / 1100 + i) * 0.6, Math.sin(a) * R * 0.8); b.rotation.y = -a; const f = Math.sin(now / 90 + i * 2) * 0.7; b.userData.wl.rotation.z = f; b.userData.wr.rotation.z = -f; b.visible = p < 0.4; });
+      windU.value = now / 1000;
       lanGlow.material.opacity = 0.5 + Math.sin(now / 700) * 0.06;
 
       if (composer) composer.render(dt); else renderer.render(scene, camera);
