@@ -41,8 +41,8 @@ function init() {
   if (mem <= 2 || cores <= 2) tier = 0;
   const TIER = [
     { dpr: 1, shadow: 1024, trees: 36, tufts: 0, motes: 60 },
-    { dpr: 1.25, shadow: 1024, trees: 60, tufts: 500, motes: 120 },
-    { dpr: 1.75, shadow: 2048, trees: 90, tufts: 1600, motes: 200 }
+    { dpr: 1.25, shadow: 1024, trees: 60, tufts: 1400, motes: 120 },
+    { dpr: 1.75, shadow: 2048, trees: 90, tufts: 4500, motes: 200 }
   ];
 
   const renderer = new THREE.WebGLRenderer({ antialias: tier > 0, powerPreference: "high-performance" });
@@ -50,7 +50,7 @@ function init() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.82;
+  renderer.toneMappingExposure = 0.84;
   const canvas = renderer.domElement;
   canvas.className = "walk-canvas";
   canvas.setAttribute("aria-hidden", "true");
@@ -233,7 +233,7 @@ function init() {
   const mFabricG = M(0x2f6150, { roughness: 1, bumpMap: tFabric, bumpScale: 0.4 });
   const mFabricC = M(0xe6dcc6, { roughness: 1, bumpMap: tFabric, bumpScale: 0.4 });
   const mFloor = M(0xffffff, { map: rep(tWood, 3.4, 2.6), roughness: 0.55, bumpMap: rep(tWood, 3.4, 2.6), bumpScale: 0.3 });
-  const mRoof = M(0xffffff, { map: tShingle, roughness: 0.9, transparent: true });
+  const mRoof = M(0xffffff, { map: tShingle, bumpMap: tShingle, bumpScale: 1.6, roughness: 1, transparent: true, envMapIntensity: 0.25 });
   const mCeil = M(0xfaf6ec, { transparent: true, side: THREE.DoubleSide, roughness: 1 });
   const mStone = M(0xffffff, { map: rep(tStone, 3, 1), roughness: 1 });
   const mBlob = new THREE.MeshBasicMaterial({ map: tBlob, transparent: true, depthWrite: false });
@@ -273,6 +273,10 @@ function init() {
   /* ---------- Ground, plot, path ---------- */
   const ground = add(scene, new THREE.CircleGeometry(900, 96), M(0xffffff, { map: tGround, roughness: 1 }), 0, 0, 0, false);
   ground.rotation.x = -Math.PI / 2;
+  { /* macro variation: soft light/dark patches break the texture repeat */
+    const tm = mk(512, (g, sz) => { g.clearRect(0, 0, sz, sz); for (let i = 0; i < 120; i++) { const x = rnd() * sz, y = rnd() * sz, r = rr(30, 110), d = rnd() < 0.55; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, d ? "rgba(30,55,20,0.16)" : "rgba(210,205,120,0.2)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); } }, { repeat: true });
+    tm.repeat.set(9, 9);
+    const mac = add(scene, new THREE.CircleGeometry(900, 64), new THREE.MeshBasicMaterial({ map: tm, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), 0, 0.006, 0, false, false); mac.rotation.x = -Math.PI / 2; }
   const lawn = add(scene, new THREE.PlaneGeometry(36, 32), M(0xffffff, { map: tGrass, roughness: 1 }), 0, 0.012, 0, false);
   lawn.rotation.x = -Math.PI / 2;
   const gravel = add(scene, new THREE.PlaneGeometry(2.4, 12), M(0xcfc6b0, { roughness: 1 }), 0, 0.016, 11.2, false);
@@ -608,8 +612,8 @@ function init() {
     const a = rnd() * Math.PI * 2, r = 24 + Math.pow(rnd(), 0.7) * 150, x = Math.cos(a) * r, z = Math.sin(a) * r; if (!okPos(x, z)) continue;
     const s = rr(0.8, 1.7), broad = ti < nB;
     tmp.position.set(x, 1.5 * s, z); tmp.scale.setScalar(s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); trunkM.setMatrixAt(ti, tmp.matrix);
-    if (broad) for (let k = 0; k < 7; k++) { tmp.position.set(x + rr(-1.5, 1.5) * s, (3.2 + rnd() * 2.2) * s, z + rr(-1.5, 1.5) * s); tmp.scale.setScalar(rr(1.0, 1.9) * s); tmp.rotation.set(rnd(), rnd(), rnd()); tmp.updateMatrix(); foliage.setMatrixAt(fi, tmp.matrix); foliage.setColorAt(fi++, new THREE.Color().setHSL(0.28 + rnd() * 0.1, 0.38 + rnd() * 0.12, 0.28 + rnd() * 0.1)); }
-    else for (let k = 0; k < 3; k++) { tmp.position.set(x, (2.6 + k * 1.7) * s, z); tmp.scale.setScalar((1.25 - k * 0.3) * s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); coneA.setMatrixAt(ci, tmp.matrix); coneA.setColorAt(ci++, new THREE.Color().setHSL(0.4 + rnd() * 0.04, 0.35, 0.16 + rnd() * 0.07)); }
+    if (broad) for (let k = 0; k < 7; k++) { tmp.position.set(x + rr(-1.5, 1.5) * s, (3.2 + rnd() * 2.2) * s, z + rr(-1.5, 1.5) * s); tmp.scale.setScalar(rr(1.0, 1.9) * s); tmp.rotation.set(rnd(), rnd(), rnd()); tmp.updateMatrix(); foliage.setMatrixAt(fi, tmp.matrix); foliage.setColorAt(fi++, new THREE.Color().setHSL(0.25 + rnd() * 0.09, 0.34 + rnd() * 0.16, 0.12 + rnd() * 0.11)); }
+    else for (let k = 0; k < 3; k++) { tmp.position.set(x, (2.6 + k * 1.7) * s, z); tmp.scale.setScalar((1.25 - k * 0.3) * s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); coneA.setMatrixAt(ci, tmp.matrix); coneA.setColorAt(ci++, new THREE.Color().setHSL(0.38 + rnd() * 0.05, 0.32, 0.08 + rnd() * 0.07)); }
     ti++;
   }
   trunkM.count = ti; foliage.count = fi; coneA.count = ci; [trunkM, foliage, coneA].forEach(m => { m.castShadow = true; scene.add(m); }); tmp.scale.set(1, 1, 1);
@@ -626,11 +630,11 @@ function init() {
   const ld = (f, rx, ry, srgb = true) => TL.load("assets/tex/" + f, t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = tier > 1 ? 8 : 2; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; });
   const apply = (mat, o) => { Object.assign(mat, o); mat.needsUpdate = true; };
   try {
-    apply(mFloor, { color: new THREE.Color(0xc4b294), map: ld("wood.jpg", 9, 11), bumpMap: ld("wood_b.jpg", 9, 11, false), bumpScale: 0.6, roughnessMap: ld("wood_r.jpg", 9, 11, false), roughness: 1 });
+    apply(mFloor, { color: new THREE.Color(0xc4b294), map: ld("wood.jpg", 9, 11), bumpMap: ld("wood_b.jpg", 9, 11, false), bumpScale: 0.6, roughnessMap: ld("wood_r.jpg", 9, 11, false), roughness: 1, envMapIntensity: 0.5 });
     apply(mChim, { map: ld("brick.jpg", 1.4, 3), bumpMap: ld("brick_b.jpg", 1.4, 3, false), bumpScale: 2 });
-    apply(ground.material, { map: ld("grass.jpg", 420, 420), color: new THREE.Color(0xe6e4c8), roughness: 1 });
+    apply(ground.material, { map: ld("grass.jpg", 420, 420), color: new THREE.Color(0xe6ebc2), roughness: 1 });
     apply(lawn.material, { map: ld("grass.jpg", 9, 8), color: new THREE.Color(0xffffee), roughness: 1 });
-    new RGBELoader().load("assets/tex/sky.hdr", hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = pmrem.fromEquirectangular(hdr).texture; scene.environmentIntensity = 0.85; scene.background = hdr; scene.backgroundIntensity = 0.95; scene.backgroundBlurriness = 0.01; sky.visible = false; clouds.forEach(c => { c.visible = false; }); });
+    new RGBELoader().load("assets/tex/sky.hdr", hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = pmrem.fromEquirectangular(hdr).texture; scene.environmentIntensity = 0.5; hdr.dispose(); });
   } catch (_) { /* keep procedural look */ }
 
   /* Real (photographed/authored) glTF furniture replaces the procedural stand-ins once loaded. */
@@ -655,7 +659,7 @@ function init() {
       const w = sticky.clientWidth || 800, h = sticky.clientHeight || 500;
       composer = new EffectComposer(renderer); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h);
       composer.addPass(new RenderPass(scene, camera));
-            bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.28, 0.7, 0.9); composer.addPass(bloom);
+            bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.1, 0.5, 0.96); composer.addPass(bloom);
       composer.addPass(new OutputPass());
     } catch (e) { composer = null; }
   }
@@ -752,12 +756,12 @@ function init() {
       scene.fog.near = lerp(60, 40, inside); scene.fog.far = lerp(260, 90, inside);
       clouds.forEach((c, i) => { c.position.x += dt * (1.2 + i * 0.15); if (c.position.x > 230) c.position.x = -230; });
       const mp = motes.geometry.attributes.position; for (let i = 0; i < MN; i++) { mp.setY(i, mp.getY(i) + Math.sin(now / 2000 + moteSeed[i]) * 0.0008); mp.setX(i, mp.getX(i) + Math.cos(now / 2600 + moteSeed[i]) * 0.0006); } mp.needsUpdate = true;
-      let nd = 99; shaftPts.forEach(v => { nd = Math.min(nd, camera.position.distanceTo(v)); }); shaftMat.opacity = 0.16 * smooth(1.6, 4.5, nd);
+      let nd = 99; shaftPts.forEach(v => { nd = Math.min(nd, camera.position.distanceTo(v)); }); shaftMat.opacity = 0.07 * smooth(1.6, 4.5, nd);
       const gold = smooth(0.0, 1.0, p), night = smooth(0.44, 0.7, p);
-      renderer.toneMappingExposure = lerp(0.82, 0.96, night); hint.style.opacity = (1 - smooth(0.0, 0.05, p)).toFixed(3);
-      sky.material.uniforms.top.value.lerpColors(C_T0, C_T1, gold); sky.material.uniforms.hor.value.lerpColors(C_H0, C_H1, gold); scene.fog.color.lerpColors(F0, F1, gold);
-      sun.color.lerpColors(C_S0, C_S1, gold); sun.intensity = lerp(3.0, 2.4, gold); hemi.intensity = lerp(0.55, 0.4, gold);
-      lampLights.forEach(l => { l.intensity = l.userData.k * (0.55 + 0.9 * night); });
+      renderer.toneMappingExposure = lerp(0.84, 0.94, night); hint.style.opacity = (1 - smooth(0.0, 0.05, p)).toFixed(3);
+      sky.material.uniforms.top.value.lerpColors(C_T0, C_T1, gold); sky.material.uniforms.hor.value.lerpColors(C_H0, C_H1, gold); scene.fog.color.copy(sky.material.uniforms.hor.value);
+      sun.color.lerpColors(C_S0, C_S1, gold); sun.intensity = lerp(2.6, 2.1, gold); hemi.intensity = lerp(0.38, 0.3, gold);
+      lampLights.forEach(l => { l.intensity = l.userData.k * (0.3 + 0.6 * night); });
       smoke.forEach((sp, i) => { const t = ((now / 7000 + i / smoke.length) % 1); sp.position.set(3.6 + t * 1.6 + Math.sin(i) * 0.15, WH + 3.9 + t * 5, -1.4 + t * 0.6); sp.scale.setScalar(0.6 + t * 3.2); sp.material.opacity = 0.42 * Math.sin(t * Math.PI) * (1 - t * 0.4); });
       birds.forEach(b => { const i = b.userData.i, a = now / (9000 + i * 900) * Math.PI * 2 + i * 0.9, R = 30 + i * 3.5; b.position.set(Math.cos(a) * R, 17 + i * 1.6 + Math.sin(now / 1100 + i) * 0.6, Math.sin(a) * R * 0.8); b.rotation.y = -a; const f = Math.sin(now / 90 + i * 2) * 0.7; b.userData.wl.rotation.z = f; b.userData.wr.rotation.z = -f; b.visible = p < 0.4; });
       lanGlow.material.opacity = 0.5 + Math.sin(now / 700) * 0.06;
