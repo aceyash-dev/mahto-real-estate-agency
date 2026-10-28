@@ -8,7 +8,6 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -71,11 +70,11 @@ function init() {
   canvas.addEventListener("webglcontextlost", e => { e.preventDefault(); fallback("context lost"); });
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(HORIZON, 45, 190);
+  scene.fog = new THREE.Fog(0x9fae9c, 60, 260);
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.55;
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.08, 520);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.08, 1400);
 
   /* ---------- Procedural textures ---------- */
   const mk = (size, draw, { repeat = false, srgb = true, w = size, h = size } = {}) => {
@@ -123,11 +122,11 @@ function init() {
     speckle(g, s, s, 1500, ["#d8cfb8", "#fff"], 2, 0.2);
   }, { repeat: true });
   const tShingle = mk(512, (g, s) => {
-    g.fillStyle = "#16382e"; g.fillRect(0, 0, s, s);
+    g.fillStyle = "#26231f"; g.fillRect(0, 0, s, s);
     const rows = 10, rh = s / rows, cw = s / 8;
     for (let r = 0; r < rows; r++) for (let c = -1; c < 9; c++) {
       const x = c * cw + (r % 2 ? cw / 2 : 0), y = r * rh, l = 22 + rnd() * 14;
-      g.fillStyle = `hsl(${155 + rnd() * 10},${38 + rnd() * 8}%,${l}%)`;
+      g.fillStyle = `hsl(${24 + rnd() * 14},${5 + rnd() * 7}%,${l - 6}%)`;
       g.beginPath(); g.roundRect(x + 1.5, y + 1, cw - 3, rh + 6, [0, 0, 7, 7]); g.fill();
       g.fillStyle = "rgba(0,0,0,0.38)"; g.fillRect(x + 1.5, y + rh - 3, cw - 3, 4);
     }
@@ -242,8 +241,8 @@ function init() {
   const add = (parent, geo, mat, x = 0, y = 0, z = 0, cast = true, receive = true) => {
     const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = receive; parent.add(m); return m;
   };
-  const rbox = (w, h, d, r = 0.04) => new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001));
-  const cyl = (rt, rb, h, seg = 16) => new THREE.CylinderGeometry(rt, rb, h, seg);
+  const rbox = (w, h, d, r = 0.04) => new RoundedBoxGeometry(w, h, d, 6, Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001));
+  const cyl = (rt, rb, h, seg = 32) => new THREE.CylinderGeometry(rt, rb, h, seg);
   const blob = (parent, x, z, w, d, y = 0.012) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mBlob); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); parent.add(m); };
 
   /* ---------- Lights ---------- */
@@ -258,7 +257,7 @@ function init() {
   const sunDir = sun.position.clone().normalize().negate();
 
   /* ---------- Sky + clouds ---------- */
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), new THREE.ShaderMaterial({
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(400, 48, 24), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     uniforms: { top: { value: new THREE.Color(0x9cc3d8) }, hor: { value: new THREE.Color(HORIZON) }, sunDir: { value: sun.position.clone().normalize() } },
     vertexShader: "varying vec3 v;void main(){v=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
@@ -272,7 +271,7 @@ function init() {
   }
 
   /* ---------- Ground, plot, path ---------- */
-  const ground = add(scene, new THREE.CircleGeometry(300, 96), M(0xffffff, { map: tGround, roughness: 1 }), 0, 0, 0, false);
+  const ground = add(scene, new THREE.CircleGeometry(900, 96), M(0xffffff, { map: tGround, roughness: 1 }), 0, 0, 0, false);
   ground.rotation.x = -Math.PI / 2;
   const lawn = add(scene, new THREE.PlaneGeometry(36, 32), M(0xffffff, { map: tGrass, roughness: 1 }), 0, 0.012, 0, false);
   lawn.rotation.x = -Math.PI / 2;
@@ -451,7 +450,7 @@ function init() {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); parent.add(g);
     add(g, cyl(0.2, 0.15, 0.4, 16), M(pot, { roughness: 0.9 }), 0, 0.2); add(g, cyl(0.19, 0.19, 0.02, 16), M(0x3a2c20), 0, 0.4, 0, false);
     add(g, cyl(0.02, 0.03, 0.9, 6), M(0x5a4a30), 0, 0.85, 0);
-    for (let i = 0; i < 12; i++) { const leaf = add(g, new THREE.SphereGeometry(0.2, 10, 8), M(new THREE.Color().setHSL(0.33 + rnd() * 0.05, 0.4, 0.22 + rnd() * 0.12), { roughness: 0.7 }), rr(-0.28, 0.28), 0.8 + rnd() * 0.7, rr(-0.28, 0.28)); leaf.scale.set(1, 0.18, 0.7); leaf.rotation.set(rr(-0.6, 0.6), rnd() * 6, rr(-0.5, 0.5)); }
+    for (let i = 0; i < 12; i++) { const leaf = add(g, new THREE.SphereGeometry(0.2, 24, 16), M(new THREE.Color().setHSL(0.33 + rnd() * 0.05, 0.4, 0.22 + rnd() * 0.12), { roughness: 0.7 }), rr(-0.28, 0.28), 0.8 + rnd() * 0.7, rr(-0.28, 0.28)); leaf.scale.set(1, 0.18, 0.7); leaf.rotation.set(rr(-0.6, 0.6), rnd() * 6, rr(-0.5, 0.5)); }
     blob(g, 0, 0, 0.8, 0.8); swaps.push({ g, file: "DiffuseTransmissionPlant", h: 1.5 });
   }
   function framed(parent, x, y, z, ry, w, h, tex) {
@@ -533,7 +532,7 @@ function init() {
   framed(house, 5.74, 2.0, 3.6, -Math.PI / 2, 1.0, 0.7, tArt[1]);
   plant(house, -1.3, 3.9, 1.1, 0xe7dccb);
   /* Accent wall, wainscoting, wardrobe, mirror, entry bench and mat. */
-  add(house, new THREE.BoxGeometry(3.6, 2.5, 0.03), M(0x2c5d4d, { roughness: 0.9 }), -3.5, 1.3, -4.33, false);
+  add(house, new THREE.BoxGeometry(3.6, 2.5, 0.03), M(0x8c9187, { roughness: 0.95 }), -3.5, 1.3, -4.33, false);
   [[0, -4.33, 11.6, 0], [-5.83, 0, 8.6, Math.PI / 2], [5.83, 0, 8.6, Math.PI / 2], [-3.3, 4.33, 5.0, 0], [3.3, 4.33, 5.0, 0]].forEach(([x, z, l, ry]) => {
     add(house, new THREE.BoxGeometry(l, 0.85, 0.03), M(0xe9e1cd, { roughness: 0.8 }), x, 0.47, z, false).rotation.y = ry;
     add(house, new THREE.BoxGeometry(l, 0.05, 0.06), mTrim, x, 0.9, z, false).rotation.y = ry;
@@ -564,11 +563,11 @@ function init() {
   house.add(motes);
 
   /* ---------- Garden: hedges, flowers, tufts, bushes, car, trees ---------- */
-  const hedgeG = new THREE.IcosahedronGeometry(0.5, 1), hedge = new THREE.InstancedMesh(hedgeG, M(0xffffff, { roughness: 0.9 }), 70); let hc = 0;
+  const hedgeG = new THREE.IcosahedronGeometry(0.5, 3), hedge = new THREE.InstancedMesh(hedgeG, M(0xffffff, { roughness: 0.9 }), 70); let hc = 0;
   const hedgeRun = (x0, x1, z) => { for (let x = x0; x <= x1; x += 0.42) { tmp.position.set(x, 0.45, z + rr(-0.08, 0.08)); tmp.scale.set(rr(0.85, 1.1), rr(0.9, 1.25), rr(0.8, 1.0)); tmp.rotation.set(rnd(), rnd(), rnd()); tmp.updateMatrix(); hedge.setMatrixAt(hc, tmp.matrix); hedge.setColorAt(hc++, new THREE.Color().setHSL(0.34 + rnd() * 0.04, 0.4, 0.18 + rnd() * 0.08)); } };
   hedgeRun(-5.7, -1.8, D / 2 + 0.75); hedgeRun(1.8, 5.7, D / 2 + 0.75);
   hedge.count = hc; hedge.castShadow = true; scene.add(hedge); tmp.scale.set(1, 1, 1);
-  const flw = new THREE.InstancedMesh(new THREE.SphereGeometry(0.075, 8, 6), M(0xffffff, { roughness: 0.6 }), 90); let fc = 0;
+  const flw = new THREE.InstancedMesh(new THREE.SphereGeometry(0.075, 14, 10), M(0xffffff, { roughness: 0.6 }), 90); let fc = 0;
   const cols = [0xe9a6b4, 0xf5ecd7, 0xd9a05b, 0xb98cc7];
   [[-5.7, -1.8], [1.8, 5.7]].forEach(([a, b]) => { for (let x = a; x <= b; x += 0.2) { if (fc >= 90) break; tmp.position.set(x + rr(-0.05, 0.05), 0.18 + rnd() * 0.18, D / 2 + 1.4 + rr(-0.15, 0.15)); tmp.rotation.set(0, 0, 0); tmp.updateMatrix(); flw.setMatrixAt(fc, tmp.matrix); flw.setColorAt(fc++, new THREE.Color(cols[(rnd() * cols.length) | 0])); } });
   flw.count = fc; scene.add(flw);
@@ -602,7 +601,7 @@ function init() {
   /* Trees: broadleaf (trunk + jittered foliage blobs) and conifers (stacked cones). */
   const NT = TIER[tier].trees, nB = Math.round(NT * 0.5), nC = NT - nB;
   const leafGeo = new THREE.IcosahedronGeometry(1, 4); { const p = leafGeo.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const n = 1 + 0.2 * Math.sin(v.x * 5.1 + v.y * 3.3) * Math.cos(v.z * 4.7 + v.x * 2.1) + 0.1 * Math.sin(v.y * 11 + v.z * 9) + 0.05 * Math.sin(v.x * 23 + v.z * 17); p.setXYZ(i, v.x * n, v.y * n * 0.9, v.z * n); } leafGeo.computeVertexNormals(); }
-  const trunkM = new THREE.InstancedMesh(cyl(0.18, 0.32, 3, 7), M(0x6b4f35, { roughness: 1 }), nB + nC), foliage = new THREE.InstancedMesh(leafGeo, M(0xffffff, { roughness: 0.9 }), nB * 7), coneA = new THREE.InstancedMesh(new THREE.ConeGeometry(1.7, 3.2, 8), M(0xffffff, { roughness: 0.9 }), nC * 3);
+  const trunkM = new THREE.InstancedMesh(cyl(0.18, 0.32, 3, 16), M(0x6b4f35, { roughness: 1 }), nB + nC), foliage = new THREE.InstancedMesh(leafGeo, M(0xffffff, { roughness: 0.9 }), nB * 7), coneA = new THREE.InstancedMesh(new THREE.ConeGeometry(1.7, 3.2, 24, 4), M(0xffffff, { roughness: 0.9 }), nC * 3);
   let ti = 0, fi = 0, ci = 0, tries = 0;
   const okPos = (x, z) => !(Math.abs(x) < 21 && Math.abs(z) < 19) && !(Math.abs(x) < 8 && z > 8 && z < 60);
   while (ti < nB + nC && tries++ < 4000) {
@@ -629,9 +628,9 @@ function init() {
   try {
     apply(mFloor, { color: new THREE.Color(0xc4b294), map: ld("wood.jpg", 9, 11), bumpMap: ld("wood_b.jpg", 9, 11, false), bumpScale: 0.6, roughnessMap: ld("wood_r.jpg", 9, 11, false), roughness: 1 });
     apply(mChim, { map: ld("brick.jpg", 1.4, 3), bumpMap: ld("brick_b.jpg", 1.4, 3, false), bumpScale: 2 });
-    apply(ground.material, { map: ld("grass.jpg", 140, 140), color: new THREE.Color(0xe6e4c8), roughness: 1 });
+    apply(ground.material, { map: ld("grass.jpg", 420, 420), color: new THREE.Color(0xe6e4c8), roughness: 1 });
     apply(lawn.material, { map: ld("grass.jpg", 9, 8), color: new THREE.Color(0xffffee), roughness: 1 });
-    new RGBELoader().load("assets/tex/sky.hdr", hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = pmrem.fromEquirectangular(hdr).texture; scene.environmentIntensity = 0.85; hdr.dispose(); });
+    new RGBELoader().load("assets/tex/sky.hdr", hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = pmrem.fromEquirectangular(hdr).texture; scene.environmentIntensity = 0.85; scene.background = hdr; scene.backgroundIntensity = 0.95; scene.backgroundBlurriness = 0.01; sky.visible = false; clouds.forEach(c => { c.visible = false; }); });
   } catch (_) { /* keep procedural look */ }
 
   /* Real (photographed/authored) glTF furniture replaces the procedural stand-ins once loaded. */
@@ -656,8 +655,7 @@ function init() {
       const w = sticky.clientWidth || 800, h = sticky.clientHeight || 500;
       composer = new EffectComposer(renderer); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h);
       composer.addPass(new RenderPass(scene, camera));
-      gtao = new GTAOPass(scene, camera, w, h); gtao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.4, thickness: 1.2, scale: 1.1, samples: 12 }); gtao.blendIntensity = 0.9; composer.addPass(gtao);
-      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.28, 0.7, 0.9); composer.addPass(bloom);
+            bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.28, 0.7, 0.9); composer.addPass(bloom);
       composer.addPass(new OutputPass());
     } catch (e) { composer = null; }
   }
@@ -725,6 +723,7 @@ function init() {
   }
 
   const C_T0 = new THREE.Color(0x9cc3d8), C_T1 = new THREE.Color(0xe9a878), C_H0 = new THREE.Color(HORIZON), C_H1 = new THREE.Color(0xf4d2a6), C_S0 = new THREE.Color(0xfff0d6), C_S1 = new THREE.Color(0xffc589);
+  const F0 = new THREE.Color(0x9fae9c), F1 = new THREE.Color(0xb8a68c);
   const camPos = new THREE.Vector3(), camTgt = new THREE.Vector3();
   let current = progressNow(), last = performance.now();
   function frame(now) {
@@ -750,13 +749,13 @@ function init() {
       const solid = 0.1 + 0.9 * smooth(0.1, 0.26, p);
       roofs.forEach(m => { m.opacity = solid; m.depthWrite = solid > 0.98; }); mRoof.opacity = solid; mCeil.opacity = solid;
       const inside = smooth(0.46, 0.52, p);
-      scene.fog.near = lerp(45, 40, inside); scene.fog.far = lerp(190, 90, inside);
+      scene.fog.near = lerp(60, 40, inside); scene.fog.far = lerp(260, 90, inside);
       clouds.forEach((c, i) => { c.position.x += dt * (1.2 + i * 0.15); if (c.position.x > 230) c.position.x = -230; });
       const mp = motes.geometry.attributes.position; for (let i = 0; i < MN; i++) { mp.setY(i, mp.getY(i) + Math.sin(now / 2000 + moteSeed[i]) * 0.0008); mp.setX(i, mp.getX(i) + Math.cos(now / 2600 + moteSeed[i]) * 0.0006); } mp.needsUpdate = true;
       let nd = 99; shaftPts.forEach(v => { nd = Math.min(nd, camera.position.distanceTo(v)); }); shaftMat.opacity = 0.16 * smooth(1.6, 4.5, nd);
       const gold = smooth(0.0, 1.0, p), night = smooth(0.44, 0.7, p);
       renderer.toneMappingExposure = lerp(0.82, 0.96, night); hint.style.opacity = (1 - smooth(0.0, 0.05, p)).toFixed(3);
-      sky.material.uniforms.top.value.lerpColors(C_T0, C_T1, gold); sky.material.uniforms.hor.value.lerpColors(C_H0, C_H1, gold); scene.fog.color.copy(sky.material.uniforms.hor.value);
+      sky.material.uniforms.top.value.lerpColors(C_T0, C_T1, gold); sky.material.uniforms.hor.value.lerpColors(C_H0, C_H1, gold); scene.fog.color.lerpColors(F0, F1, gold);
       sun.color.lerpColors(C_S0, C_S1, gold); sun.intensity = lerp(3.0, 2.4, gold); hemi.intensity = lerp(0.55, 0.4, gold);
       lampLights.forEach(l => { l.intensity = l.userData.k * (0.55 + 0.9 * night); });
       smoke.forEach((sp, i) => { const t = ((now / 7000 + i / smoke.length) % 1); sp.position.set(3.6 + t * 1.6 + Math.sin(i) * 0.15, WH + 3.9 + t * 5, -1.4 + t * 0.6); sp.scale.setScalar(0.6 + t * 3.2); sp.material.opacity = 0.42 * Math.sin(t * Math.PI) * (1 - t * 0.4); });
