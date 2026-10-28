@@ -41,8 +41,8 @@ function init() {
   if (mem <= 2 || cores <= 2) tier = 0;
   const TIER = [
     { dpr: 1, shadow: 1024, trees: 36, tufts: 0, motes: 60 },
-    { dpr: 1.25, shadow: 1024, trees: 60, tufts: 1400, motes: 120 },
-    { dpr: 1.75, shadow: 2048, trees: 90, tufts: 4500, motes: 200 }
+    { dpr: 1.5, shadow: 1024, trees: 60, tufts: 0, motes: 120 },
+    { dpr: 2, shadow: 2048, trees: 90, tufts: 0, motes: 200 }
   ];
 
   const renderer = new THREE.WebGLRenderer({ antialias: tier > 0, powerPreference: "high-performance" });
@@ -652,20 +652,20 @@ function init() {
 
   /* Grass: thousands of curved, tapered, wind-swayed blades. */
   const windU = { value: 0 };
-  const NBL = [0, 16000, 46000][tier];
+  const NBL = [0, 4500, 12000][tier];
   if (NBL) {
     const sg = 4, vs = [], cs = [], ix = [];
-    for (let i = 0; i <= sg; i++) { const t = i / sg, y = t * 0.5, w = 0.03 * (1 - t * 0.9), bz = t * t * 0.14, c = 0.4 + 0.6 * t; vs.push(-w, y, bz, w, y, bz); cs.push(c * 0.7, c, c * 0.55, c * 0.7, c, c * 0.55); }
+    for (let i = 0; i <= sg; i++) { const t = i / sg, y = t * 0.5, w = 0.022 * (1 - t * 0.9), bz = t * t * 0.14, c = 0.4 + 0.6 * t; vs.push(-w, y, bz, w, y, bz); cs.push(c * 0.7, c, c * 0.55, c * 0.7, c, c * 0.55); }
     for (let i = 0; i < sg; i++) { const o = i * 2; ix.push(o, o + 1, o + 2, o + 1, o + 3, o + 2); }
     const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.Float32BufferAttribute(vs, 3)); bg.setAttribute("color", new THREE.Float32BufferAttribute(cs, 3)); bg.setIndex(ix); bg.computeVertexNormals();
     const bm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide, envMapIntensity: 0.3 });
     bm.onBeforeCompile = sh => { sh.uniforms.uTime = windU; sh.vertexShader = "uniform float uTime;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n float hh = position.y; transformed.x += sin(uTime * 1.7 + instanceMatrix[3].x * 0.6 + instanceMatrix[3].z * 0.4) * 0.07 * hh * 2.0; transformed.z += cos(uTime * 1.3 + instanceMatrix[3].z * 0.5) * 0.04 * hh * 2.0;"); };
     const blades = new THREE.InstancedMesh(bg, bm, NBL); let n = 0, g = 0;
     while (n < NBL && g++ < NBL * 6) {
-      const inLawn = rnd() < 0.6, x = inLawn ? rr(-17, 17) : rr(-42, 42), z = inLawn ? rr(-15, 15) : rr(-40, 40);
+      const inLawn = rnd() < 0.8, x = inLawn ? rr(-17, 17) : rr(-26, 26), z = inLawn ? rr(-15, 15) : rr(-24, 24);
       if (Math.abs(x) < 7.2 && z > -5.6 && z < 5.4) continue; if (Math.abs(x) < 1.5 && z > 4) continue; if (x > 8.4 && x < 11.4 && z > 4) continue;
       if (Math.hypot(x + 12.5, z - 6) < 3.4) continue;
-      tmp.position.set(x, 0, z); tmp.rotation.set(rr(-0.15, 0.15), rnd() * 6.28, rr(-0.15, 0.15)); tmp.scale.set(rr(0.8, 1.3), rr(0.4, 0.95), 1); tmp.updateMatrix(); blades.setMatrixAt(n, tmp.matrix);
+      tmp.position.set(x, 0, z); tmp.rotation.set(rr(-0.15, 0.15), rnd() * 6.28, rr(-0.15, 0.15)); tmp.scale.set(rr(0.8, 1.3), rr(0.3, 0.6), 1); tmp.updateMatrix(); blades.setMatrixAt(n, tmp.matrix);
       blades.setColorAt(n++, col.setHSL(rr(0.2, 0.27), rr(0.35, 0.55), rr(0.28, 0.5)));
     }
     blades.count = n; blades.frustumCulled = false; scene.add(blades); tmp.scale.set(1, 1, 1); tmp.rotation.set(0, 0, 0);
@@ -680,7 +680,7 @@ function init() {
 
   /* ---------- Photographic PBR textures + HDR lighting (async; procedural versions are the fallback) ---------- */
   const TL = new THREE.TextureLoader();
-  const ld = (f, rx, ry, srgb = true) => TL.load("assets/tex/" + f, t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = tier > 1 ? 8 : 2; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; });
+  const ld = (f, rx, ry, srgb = true) => TL.load("assets/tex/" + f, t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), tier > 0 ? 16 : 4); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; });
   const apply = (mat, o) => { Object.assign(mat, o); mat.needsUpdate = true; };
   try {
     apply(mFloor, { color: new THREE.Color(0xc4b294), map: ld("wood.jpg", 9, 11), bumpMap: ld("wood_b.jpg", 9, 11, false), bumpScale: 0.6, roughnessMap: ld("wood_r.jpg", 9, 11, false), roughness: 1, envMapIntensity: 0.5 });
