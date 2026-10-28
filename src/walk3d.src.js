@@ -4,6 +4,7 @@
    any failure removes .is-3d so the page falls back to the plain card stack. */
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -439,6 +440,7 @@ function init() {
   lamp(-3.4, 2.5, 0.6, 16); lamp(3.2, 2.5, -0.6, 16); lamp(3.6, 1.2, 3.3, 7);
   { const tvl = new THREE.PointLight(0x9fd0ff, 3, 5, 2); tvl.position.set(-3.5, 1.3, -3.4); tvl.userData.k = 3; lampLights.push(tvl); house.add(tvl); }
 
+  const swaps = [];
   function chair(parent, x, z, ry) {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; parent.add(g);
     add(g, rbox(0.46, 0.06, 0.46, 0.02), mWood, 0, 0.46); add(g, rbox(0.46, 0.5, 0.05, 0.02), mWood, 0, 0.74, -0.2);
@@ -450,7 +452,7 @@ function init() {
     add(g, cyl(0.2, 0.15, 0.4, 16), M(pot, { roughness: 0.9 }), 0, 0.2); add(g, cyl(0.19, 0.19, 0.02, 16), M(0x3a2c20), 0, 0.4, 0, false);
     add(g, cyl(0.02, 0.03, 0.9, 6), M(0x5a4a30), 0, 0.85, 0);
     for (let i = 0; i < 12; i++) { const leaf = add(g, new THREE.SphereGeometry(0.2, 10, 8), M(new THREE.Color().setHSL(0.33 + rnd() * 0.05, 0.4, 0.22 + rnd() * 0.12), { roughness: 0.7 }), rr(-0.28, 0.28), 0.8 + rnd() * 0.7, rr(-0.28, 0.28)); leaf.scale.set(1, 0.18, 0.7); leaf.rotation.set(rr(-0.6, 0.6), rnd() * 6, rr(-0.5, 0.5)); }
-    blob(g, 0, 0, 0.8, 0.8);
+    blob(g, 0, 0, 0.8, 0.8); swaps.push({ g, file: "DiffuseTransmissionPlant", h: 1.5 });
   }
   function framed(parent, x, y, z, ry, w, h, tex) {
     const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g);
@@ -465,7 +467,7 @@ function init() {
   [-1.2, 1.2].forEach(x => add(sofa, rbox(0.3, 0.55, 1.05, 0.1), mFabricG, x, 0.5)); [-0.8, 0, 0.8].forEach(x => { add(sofa, rbox(0.8, 0.2, 0.82, 0.09), mFabricG, x, 0.56, 0.05); add(sofa, rbox(0.78, 0.5, 0.22, 0.09), mFabricG, x, 0.86, -0.22).rotation.x = -0.18; });
   [[-1.0, 0.25], [0.95, -0.2]].forEach(([x, r]) => { const p = add(sofa, rbox(0.42, 0.42, 0.14, 0.06), x < 0 ? mBrass : mFabricC, x, 0.85, 0.2); p.rotation.set(-0.2, r, 0.2); });
   [[-1.2, 0.4], [1.2, 0.4], [-1.2, -0.4], [1.2, -0.4]].forEach(([x, z]) => add(sofa, cyl(0.03, 0.025, 0.16, 8), mDark, x, 0.08, z));
-  blob(sofa, 0, 0, 3.2, 1.6);
+  blob(sofa, 0, 0, 3.2, 1.6); swaps.push({ g: sofa, file: "GlamVelvetSofa", h: 0.95 });
   const ct = new THREE.Group(); ct.position.set(-3.5, 0, -0.55); living.add(ct);
   add(ct, rbox(1.3, 0.05, 0.7, 0.02), mWood, 0, 0.4); add(ct, rbox(1.1, 0.03, 0.5, 0.01), mWood, 0, 0.18);
   [[-0.58, -0.28], [0.58, -0.28], [-0.58, 0.28], [0.58, 0.28]].forEach(([x, z]) => add(ct, cyl(0.025, 0.02, 0.38, 8), mDark, x, 0.19, z));
@@ -515,6 +517,7 @@ function init() {
   add(dine, rbox(1.9, 0.06, 0.95, 0.025), mWood, 0, 0.76); [[-0.85, -0.38], [0.85, -0.38], [-0.85, 0.38], [0.85, 0.38]].forEach(([x, z]) => add(dine, cyl(0.04, 0.03, 0.74, 8), mDark, x, 0.37, z));
   [-0.5, 0.5].forEach(x => { add(dine, cyl(0.12, 0.1, 0.012, 20), mWhite, x, 0.8, 0.22, false); add(dine, cyl(0.12, 0.1, 0.012, 20), mWhite, x, 0.8, -0.22, false); });
   add(dine, cyl(0.07, 0.09, 0.22, 14), M(0x3b6b5a, { roughness: 0.2 }), 0, 0.92, 0);
+  swaps.push({ g: dine, file: "GlassVaseFlowers", h: 0.55, add: [0, 0.78, 0], hide: false });
   chair(dine, -0.5, 0.75, Math.PI); chair(dine, 0.5, 0.75, Math.PI); chair(dine, -0.5, -0.75, 0); chair(dine, 0.5, -0.75, 0); blob(dine, 0, 0, 2.6, 1.8);
   plant(kit, 5.5, -2.6, 1.0, 0xcfb89a);
 
@@ -630,6 +633,21 @@ function init() {
     apply(lawn.material, { map: ld("grass.jpg", 9, 8), color: new THREE.Color(0xffffee), roughness: 1 });
     new RGBELoader().load("assets/tex/sky.hdr", hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = pmrem.fromEquirectangular(hdr).texture; scene.environmentIntensity = 0.85; hdr.dispose(); });
   } catch (_) { /* keep procedural look */ }
+
+  /* Real (photographed/authored) glTF furniture replaces the procedural stand-ins once loaded. */
+  swaps.push({ g: living, file: "SpecularSilkPouf", h: 0.38, add: [-1.8, 0, 0.9], hide: false, tint: 0xe0c2b0 });
+  if (tier >= 1) {
+    const gl = new GLTFLoader(), cache = {};
+    const place = (sw, src) => {
+      const m = src.clone(true); const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+      const k = sw.h / Math.max(0.01, size.y); m.scale.setScalar(k); m.position.set(-ctr.x * k, -box.min.y * k, -ctr.z * k);
+      const w = new THREE.Group(); w.add(m); if (sw.add) w.position.set(...sw.add);
+      w.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (sw.tint) { o.material = o.material.clone(); o.material.color.set(sw.tint); } } });
+      if (sw.hide !== false) sw.g.children.forEach(c => { c.visible = false; });
+      sw.g.add(w);
+    };
+    [...new Set(swaps.map(x => x.file))].forEach(f => gl.load("assets/models/" + f + ".glb", gltf => { cache[f] = gltf.scene; swaps.filter(x => x.file === f).forEach(sw => { try { place(sw, gltf.scene); } catch (_) { /* keep stand-in */ } }); }, undefined, () => { /* keep stand-in */ }));
+  }
 
   /* ---------- Post-processing (high tier): ambient occlusion + soft bloom ---------- */
   let composer = null, gtao = null, bloom = null;
