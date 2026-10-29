@@ -666,9 +666,10 @@ function init() {
   const branchM = new THREE.InstancedMesh(branchG, M(0x5b4632, { roughness: 1 }), nB * 5);
   const core = new THREE.InstancedMesh(coreGeo, M(0xffffff, { roughness: 1 }), nB * 3);
   const foliage = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.5, 1.5), new THREE.MeshStandardMaterial({ map: tLeaf, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.85, envMapIntensity: 0.4 }), nB * CARDS);
-  const coneA = new THREE.InstancedMesh(new THREE.ConeGeometry(1.5, 1.9, 28, 2), M(0xffffff, { roughness: 1, bumpMap: treeBump, bumpScale: 4 }), nC * 8);
+  const coneG = new THREE.ConeGeometry(1.5, 1.9, 48, 4, true); { const pp = coneG.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < pp.count; i++) { v.fromBufferAttribute(pp, i); const a = Math.atan2(v.z, v.x), rag = 1 + 0.16 * Math.sin(a * 11 + v.y * 3) + 0.1 * Math.sin(a * 23) * (1 - (v.y + 0.95) / 1.9) ; const sag = (v.y < -0.4 ? -0.18 * (1 - (v.y + 0.95) / 0.55) : 0); pp.setXYZ(i, v.x * rag, v.y + sag * Math.hypot(v.x, v.z) / 1.5, v.z * rag); } coneG.computeVertexNormals(); }
+  const coneA = new THREE.InstancedMesh(coneG, M(0xffffff, { roughness: 1, side: THREE.DoubleSide, bumpMap: treeBump, bumpScale: 4 }), nC * 8);
   let ti = 0, fi = 0, ci = 0, bi = 0, ki = 0, tries = 0; const col = new THREE.Color(), up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3(), q = new THREE.Quaternion();
-  const okPos = (x, z) => !(Math.abs(x) < 21 && Math.abs(z) < 19) && !(Math.abs(x) < 8 && z > 8 && z < 60);
+  const okPos = (x, z) => !(Math.abs(x) < 24 && Math.abs(z) < 19) && !(Math.abs(x) < 30 && z > 8 && z < 75);
   while (ti < nB + nC && tries++ < 4000) {
     const a = rnd() * Math.PI * 2, r = 24 + Math.pow(rnd(), 0.7) * 150, x = Math.cos(a) * r, z = Math.sin(a) * r; if (!okPos(x, z)) continue;
     const s = rr(0.8, 1.7), broad = ti < nB;
@@ -686,7 +687,7 @@ function init() {
       }
     } else {
       const hue = 0.37 + rnd() * 0.05;
-      for (let k = 0; k < 8; k++) { const f = k / 7; tmp.position.set(x, (1.9 + k * 1.05) * s, z); tmp.scale.set((1.25 - f * 0.95) * s, 0.95 * s, (1.25 - f * 0.95) * s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); coneA.setMatrixAt(ci, tmp.matrix); coneA.setColorAt(ci++, col.setHSL(hue, 0.3, 0.07 + f * 0.04 + rnd() * 0.03)); }
+      for (let k = 0; k < 8; k++) { const f = k / 7; tmp.position.set(x, (1.9 + k * 1.05) * s, z); tmp.scale.set((1.25 - f * 0.95) * s, 1.15 * s, (1.25 - f * 0.95) * s); tmp.rotation.set(0, rnd() * 6, 0); tmp.updateMatrix(); coneA.setMatrixAt(ci, tmp.matrix); coneA.setColorAt(ci++, col.setHSL(hue, 0.3, 0.07 + f * 0.04 + rnd() * 0.03)); }
     }
     ti++;
   }
@@ -851,7 +852,7 @@ function init() {
 
       doorPivot.rotation.y = smooth(0.38, 0.46, p) * 1.85;
       gateL.rotation.y = -smooth(0.24, 0.31, p) * 1.6; gateR.rotation.y = smooth(0.24, 0.31, p) * 1.6;
-      const solid = 0.1 + 0.9 * smooth(0.1, 0.26, p);
+      const solid = 1;
       roofs.forEach(m => { m.opacity = solid; m.depthWrite = solid > 0.98; }); mRoof.opacity = solid; mCeil.opacity = solid;
       const inside = smooth(0.46, 0.52, p);
       scene.fog.near = lerp(60, 40, inside); scene.fog.far = lerp(260, 90, inside);
