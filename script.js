@@ -107,16 +107,16 @@
       const fd = new FormData(enquiryForm);
       const payload = Object.fromEntries(["name", "phone", "interest", "location", "budget", "details"].map(key => [key, String(fd.get(key) || "").trim()]));
       payload.consent = fd.get("consent") === "on";
-      if (payload.name.length < 2) { formStatus.textContent = "Please enter your name (at least 2 characters)."; enquiryForm.elements.name.focus(); return; }
+      if (payload.name.length < 2) { formStatus.textContent = "Please enter your name (at least 2 characters)."; window.TD && TD.shake(enquiryForm.elements.name); enquiryForm.elements.name.focus(); return; }
       const digits = payload.phone.replace(/\D/g, "");
-      if (digits.length < 7 || digits.length > 15) { formStatus.textContent = "Please enter a valid phone number."; enquiryForm.elements.phone.focus(); return; }
-      if (!payload.interest || !payload.consent) { formStatus.textContent = "Choose an enquiry type and confirm the consent notice."; return; }
+      if (digits.length < 7 || digits.length > 15) { formStatus.textContent = "Please enter a valid phone number."; window.TD && TD.shake(enquiryForm.elements.phone); enquiryForm.elements.phone.focus(); return; }
+      if (!payload.interest || !payload.consent) { formStatus.textContent = "Choose an enquiry type and confirm the consent notice."; window.TD && TD.shake(!payload.interest ? enquiryForm.elements.interest : enquiryForm.elements.consent); return; }
       const submit = enquiryForm.querySelector('[type="submit"]'); submit.disabled = true; submit.textContent = "Sending securely…";
       try {
         const response = await fetch("/api/enquiries", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(payload) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || (response.status === 503 ? "Enquiry service is not configured yet. Please contact the agency by phone or WhatsApp." : "We could not submit your enquiry. Please try again or contact the agency directly."));
-        formStatus.textContent = "Your enquiry has been submitted. The agency can follow up using the contact details you provided.";
+        const okText = "Your enquiry has been submitted. The agency can follow up using the contact details you provided."; if (window.TD) TD.check(formStatus, okText); else formStatus.textContent = okText;
         enquiryForm.reset();
       } catch (error) {
         formStatus.textContent = error.message || "Enquiry service is temporarily unavailable. Please contact the agency by phone or WhatsApp.";

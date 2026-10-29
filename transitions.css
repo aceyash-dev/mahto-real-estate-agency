@@ -1,0 +1,48 @@
+/* Transition recipes adapted from transitions.dev (accordion, menu dropdown, error shake, success check, text swap).
+   One shared token set so every micro-transition uses the same curve. */
+:root {
+  --t-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-open: 320ms; --t-close: 220ms;
+  --dropdown-open-dur: 250ms; --dropdown-pre-scale: 0.97;
+  --shake-distance: 6px; --shake-overshoot: 3px; --shake-ease: cubic-bezier(0.33, 1, 0.68, 1);
+  --text-swap-dur: 200ms; --text-swap-y: 6px; --text-swap-blur: 3px;
+}
+
+/* FAQ accordion: height + fade + blur on the answer, chevron-style plus turn (JS in transitions.js) */
+.faq-list details > p { will-change: height, opacity; }
+
+/* Mobile menu: grows from its trigger corner */
+@media (max-width: 780px) {
+  .primary-nav.is-open { transform-origin: top right; animation: t-drop-in var(--dropdown-open-dur) var(--t-ease) both; }
+}
+@keyframes t-drop-in { from { opacity: 0; transform: scale(var(--dropdown-pre-scale)); } to { opacity: 1; transform: scale(1); } }
+
+/* Error shake on invalid fields */
+.field.is-shaking { animation: t-shake 280ms linear; }
+@keyframes t-shake {
+  0% { transform: translateX(0); animation-timing-function: var(--shake-ease); }
+  28.57% { transform: translateX(var(--shake-distance)); animation-timing-function: var(--shake-ease); }
+  57.14% { transform: translateX(calc(var(--shake-distance) * -1)); animation-timing-function: var(--shake-ease); }
+  78.57% { transform: translateX(var(--shake-overshoot)); animation-timing-function: var(--shake-ease); }
+  100% { transform: translateX(0); }
+}
+#form-status:not(:empty) { animation: t-status-in 320ms var(--t-ease) both; }
+@keyframes t-status-in { from { opacity: 0; transform: translateY(6px); filter: blur(2px); } to { opacity: 1; transform: none; filter: blur(0); } }
+
+/* Success check draws itself */
+.t-check { display: inline-block; width: 1.15em; height: 1.15em; margin-right: .5em; vertical-align: -.2em; }
+.t-check circle, .t-check path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.t-check circle { animation: t-draw 420ms var(--t-ease) forwards; }
+.t-check path { animation: t-draw 320ms var(--t-ease) 260ms forwards; }
+@keyframes t-draw { to { stroke-dashoffset: 0; } }
+
+/* Button label swap */
+.t-text-swap { display: inline-block; transition: transform var(--text-swap-dur) var(--t-ease), filter var(--text-swap-dur) var(--t-ease), opacity var(--text-swap-dur) var(--t-ease); }
+.t-text-swap.is-exit { transform: translateY(calc(var(--text-swap-y) * -1)); filter: blur(var(--text-swap-blur)); opacity: 0; }
+.t-text-swap.is-enter-start { transform: translateY(var(--text-swap-y)); filter: blur(var(--text-swap-blur)); opacity: 0; transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .primary-nav.is-open, .field.is-shaking, #form-status:not(:empty), .t-check circle, .t-check path { animation: none !important; }
+  .t-check circle, .t-check path { stroke-dashoffset: 0; }
+  .t-text-swap { transition: none !important; }
+}
