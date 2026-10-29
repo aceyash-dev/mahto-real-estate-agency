@@ -65,3 +65,19 @@ ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS properties_public_filters_idx ON properties (district, city, locality, pin_code, property_type, availability_status, asking_price);
+
+ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS handled_at TIMESTAMPTZ;
+
+-- Admin accounts (also created automatically on first sign-in/use)
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  email VARCHAR(254) UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  phone VARCHAR(20),
+  role VARCHAR(10) NOT NULL CHECK (role IN ('admin','broker','owner')),
+  password_hash TEXT NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_login_at TIMESTAMPTZ
+);
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS owner_user_id BIGINT;

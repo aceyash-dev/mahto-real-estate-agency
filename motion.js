@@ -22,8 +22,8 @@
 
   /* Smooth scrolling. Lenis drives native scroll, so Motion's scroll() keeps working. */
   const lenis = new window.Lenis({
-    duration: 1.2,
-    easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    lerp: 0.085,
+    wheelMultiplier: 0.9,
     smoothWheel: true,
     touchMultiplier: 1.2
   });

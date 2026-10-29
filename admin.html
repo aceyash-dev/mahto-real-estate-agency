@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin | Mahto Real Estate Agency</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./admin.css">
+  <script src="./admin.js" defer></script>
+</head>
+<body>
+  <main class="adm">
+    <section id="login" class="login" aria-labelledby="login-title" hidden>
+      <p class="eyebrow">Mahto Real Estate Agency</p>
+      <h1 id="login-title">Sign in</h1>
+      <p class="muted">For the agency admin, brokers and property owners.</p>
+      <form id="login-form">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required maxlength="254" spellcheck="false">
+        <label for="password">Password</label>
+        <div class="keyrow"><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200"><button type="button" id="peek" aria-label="Show password" aria-pressed="false">Show</button></div>
+        <p id="login-msg" class="msg" role="alert"></p>
+        <button class="btn primary" type="submit">Sign in</button>
+      </form>
+      <a class="back" href="/">← Back to website</a>
+    </section>
+
+    <section id="panel" class="panel" hidden aria-labelledby="panel-title">
+      <header class="bar">
+        <div><p class="eyebrow" id="who">Admin</p><h1 id="panel-title">Dashboard</h1></div>
+        <div class="bar-actions"><span id="role-chip" class="chip"></span><button class="btn" id="logout" type="button">Sign out</button></div>
+      </header>
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button role="tab" id="tab-listings" data-tab="listings" aria-selected="true">Listings</button>
+        <button role="tab" id="tab-enquiries" data-tab="enquiries" aria-selected="false" data-admin>Enquiries</button>
+        <button role="tab" id="tab-team" data-tab="team" aria-selected="false" data-admin>Team</button>
+      </nav>
+
+      <div id="view-listings" role="tabpanel" aria-labelledby="tab-listings">
+        <p id="role-note" class="note"></p>
+        <div class="bar-actions"><button class="btn" id="new-listing" type="button">+ New listing</button><button class="btn" id="refresh-listings" type="button">Refresh</button></div>
+        <form id="listing-form" class="card-form" hidden>
+          <h2 id="lf-title">New listing</h2>
+          <input type="hidden" name="id">
+          <div class="grid2">
+            <label>Title *<input name="title" required maxlength="180"></label>
+            <label>Type *<select name="property_type" required><option>Plot / Land</option><option>House</option><option>Flat / Apartment</option><option>Commercial property</option><option>Other</option></select></label>
+            <label>Availability<select name="availability_status"><option>Available</option><option>Under Discussion</option><option>Reserved</option><option>Sold</option></select></label>
+            <label>Asking price (₹)<input name="asking_price" type="number" min="0" step="any" inputmode="decimal"></label>
+            <label>Area<input name="area_value" type="number" min="0" step="any" inputmode="decimal"></label>
+            <label>Area unit<input name="area_unit" maxlength="20" placeholder="e.g. katha, sq ft"></label>
+            <label>Locality<input name="locality" maxlength="120"></label>
+            <label>City<input name="city" maxlength="120"></label>
+            <label>District<input name="district" maxlength="120"></label>
+            <label>State<input name="state" maxlength="120"></label>
+            <label>PIN code<input name="pin_code" maxlength="12" inputmode="numeric"></label>
+            <label>Photo URL (https)<input name="photo_url" type="url" maxlength="500"></label>
+          </div>
+          <label>Short summary<input name="summary" maxlength="300"></label>
+          <label>Description<textarea name="description" rows="4" maxlength="3000"></textarea></label>
+          <p id="lf-msg" class="msg" role="alert"></p>
+          <div class="bar-actions"><button class="btn primary inline" type="submit">Save listing</button><button class="btn" id="lf-cancel" type="button">Cancel</button></div>
+        </form>
+        <ul id="listings" class="list" aria-live="polite"></ul>
+        <p id="listings-empty" class="empty" hidden>No listings yet.</p>
+      </div>
+
+      <div id="view-enquiries" role="tabpanel" aria-labelledby="tab-enquiries" hidden>
+        <div class="bar-actions"><span id="mail-state" class="chip"></span><button class="btn" id="refresh" type="button">Refresh</button><button class="btn" id="csv" type="button">Export CSV</button></div>
+        <div class="stats" aria-live="polite"><div><b id="s-total">0</b><span>Total</span></div><div><b id="s-new">0</b><span>New</span></div><div><b id="s-done">0</b><span>Handled</span></div></div>
+        <div class="filters">
+          <label class="sr" for="q">Search enquiries</label>
+          <input id="q" type="search" placeholder="Search name, phone, email, location, message" maxlength="80">
+          <div class="seg" role="group" aria-label="Filter"><button type="button" data-s="all" aria-pressed="true">All</button><button type="button" data-s="new" aria-pressed="false">New</button><button type="button" data-s="handled" aria-pressed="false">Handled</button></div>
+        </div>
+        <p id="note" class="note" hidden></p>
+        <ul id="list" class="list" aria-live="polite"></ul>
+        <p id="empty" class="empty" hidden>No enquiries match.</p>
+        <button class="btn" id="more" type="button" hidden>Load more</button>
+      </div>
+
+      <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+        <form id="user-form" class="card-form">
+          <h2>Add a broker or owner</h2>
+          <div class="grid2">
+            <label>Full name *<input name="name" required minlength="2" maxlength="100"></label>
+            <label>Email *<input name="email" type="email" required maxlength="254"></label>
+            <label>Role *<select name="role"><option value="broker">Broker</option><option value="owner">Owner</option><option value="admin">Admin</option></select></label>
+            <label>Temporary password * (10+ chars)<input name="password" type="text" required minlength="10" maxlength="100" autocomplete="off"></label>
+          </div>
+          <p id="uf-msg" class="msg" role="alert"></p>
+          <button class="btn primary inline" type="submit">Create account</button>
+        </form>
+        <ul id="users" class="list"></ul>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

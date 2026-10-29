@@ -1,61 +1,91 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: GPTBot
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: OAI-SearchBot
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: ChatGPT-User
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: ClaudeBot
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: Claude-SearchBot
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: Claude-User
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: anthropic-ai
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: PerplexityBot
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: Perplexity-User
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: Google-Extended
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: Applebot-Extended
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: CCBot
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: Bingbot
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 User-agent: Googlebot
 Allow: /
 Disallow: /api/
+Disallow: /admin.html
+Disallow: /admin
 
 Sitemap: https://mahto-real-estate-agency.pages.dev/sitemap.xml

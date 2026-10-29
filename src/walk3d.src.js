@@ -849,7 +849,7 @@ function init() {
     if (!visible) { last = now; return; }
     try {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      current += (progressNow() - current) * (1 - Math.exp(-dt * 6));
+      current += (progressNow() - current) * (1 - Math.exp(-dt * 11));
       const p = current, u = toU(p);
       posCurve.getPoint(u, camPos); tgtCurve.getPoint(u, camTgt);
       const sway = smooth(0.48, 0.56, p) * 0.016;

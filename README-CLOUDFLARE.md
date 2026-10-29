@@ -15,3 +15,19 @@ Use `Authorization: Bearer <ADMIN_API_TOKEN>`. Create with POST fields `slug`, `
 
 ## Safety
 No sample listings are inserted. Public APIs return only active, approved, non-archived properties. Enquiries validate fields and consent and are stored in Neon. Notification delivery requires a Resend key and verified sender.
+
+
+## Admin sign-in (brokers, owners, admin)
+
+Open `/admin`. Roles: **admin** (all listings, approve/publish, enquiries, team), **broker** and **owner** (own listings only; each save waits for admin approval).
+
+Cloudflare Pages secrets (Settings > Variables and Secrets, Production):
+
+| Name | Purpose |
+| --- | --- |
+| `ADMIN_EMAIL` | Primary admin email |
+| `ADMIN_PASSWORD` | Primary admin password (never committed) |
+| `SESSION_SECRET` | Long random string that signs the session cookie |
+| `DATABASE_URL` | Neon connection string (already used) |
+
+The `users` table and `properties.owner_user_id` column are created automatically on first use.
