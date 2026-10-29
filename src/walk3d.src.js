@@ -51,8 +51,8 @@ function init() {
   let tier = (coarse || mem <= 3 || cores <= 4 || Math.min(screen.width, screen.height) < 700) ? 1 : 2;
   if (mem <= 2 || cores <= 2) tier = 0;
   const TIER = [
-    { dpr: 1, shadow: 1024, trees: 36, tufts: 0, motes: 60 },
-    { dpr: 1.5, shadow: 1024, trees: 60, tufts: 0, motes: 120 },
+    { dpr: 1.25, shadow: 1024, trees: 36, tufts: 0, motes: 60 },
+    { dpr: 1.75, shadow: 1024, trees: 60, tufts: 0, motes: 120 },
     { dpr: 2, shadow: 2048, trees: 90, tufts: 0, motes: 200 }
   ];
 
@@ -285,7 +285,7 @@ function init() {
   const ground = add(scene, new THREE.CircleGeometry(900, 96), M(0xffffff, { map: tGround, roughness: 1 }), 0, 0, 0, false);
   ground.rotation.x = -Math.PI / 2;
   { /* macro variation: soft light/dark patches break the texture repeat */
-    const tm = mk(512, (g, sz) => { g.clearRect(0, 0, sz, sz); for (let i = 0; i < 120; i++) { const x = rnd() * sz, y = rnd() * sz, r = rr(30, 110), d = rnd() < 0.55; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, d ? "rgba(30,55,20,0.16)" : "rgba(210,205,120,0.2)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); } }, { repeat: true });
+    const tm = mk(512, (g, sz) => { g.clearRect(0, 0, sz, sz); for (let i = 0; i < 120; i++) { const x = rnd() * sz, y = rnd() * sz, r = rr(30, 110), d = rnd() < 0.55; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, d ? "rgba(30,55,20,0.07)" : "rgba(210,205,120,0.2)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); } }, { repeat: true });
     tm.repeat.set(9, 9);
     const mac = add(scene, new THREE.CircleGeometry(900, 64), new THREE.MeshBasicMaterial({ map: tm, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), 0, 0.006, 0, false, false); mac.rotation.x = -Math.PI / 2; }
   const lawn = add(scene, new THREE.PlaneGeometry(36, 32), M(0xffffff, { map: tGrass, roughness: 1 }), 0, 0.012, 0, false);
@@ -745,8 +745,8 @@ function init() {
     });
     apply(mFloor, { color: new THREE.Color(0xc4b294), map: ld("wood.jpg", 9, 11), bumpMap: ld("wood_b.jpg", 9, 11, false), bumpScale: 0.6, roughnessMap: ld("wood_r.jpg", 9, 11, false), roughness: 1, envMapIntensity: 0.5 });
     apply(mChim, { map: ld("brick.jpg", 1.4, 3), bumpMap: ld("brick_b.jpg", 1.4, 3, false), bumpScale: 2 });
-    apply(ground.material, { map: ld("grass.jpg", 420, 420), color: new THREE.Color(0xe6ebc2), roughness: 1 });
-    apply(lawn.material, { map: ld("grass.jpg", 9, 8), color: new THREE.Color(0xffffee), roughness: 1 });
+    apply(ground.material, { map: ld("grass.jpg", 420, 420), color: new THREE.Color(0xffffff), roughness: 1 });
+    apply(lawn.material, { map: ld("grass.jpg", 9, 8), color: new THREE.Color(0xffffff), roughness: 1 });
     new RGBELoader().load("assets/tex/sky.hdr", hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = pmrem.fromEquirectangular(hdr).texture; scene.environmentIntensity = 0.5; hdr.dispose(); });
   } catch (_) { /* keep procedural look */ }
 
@@ -871,9 +871,9 @@ function init() {
       const mp = motes.geometry.attributes.position; for (let i = 0; i < MN; i++) { mp.setY(i, mp.getY(i) + Math.sin(now / 2000 + moteSeed[i]) * 0.0008); mp.setX(i, mp.getX(i) + Math.cos(now / 2600 + moteSeed[i]) * 0.0006); } mp.needsUpdate = true;
       let nd = 99; shaftPts.forEach(v => { nd = Math.min(nd, camera.position.distanceTo(v)); }); shaftMat.opacity = 0.07 * smooth(1.6, 4.5, nd);
       const gold = smooth(0.0, 1.0, p), night = smooth(0.44, 0.7, p);
-      renderer.toneMappingExposure = lerp(0.84, 0.94, night); hint.style.opacity = (1 - smooth(0.0, 0.05, p)).toFixed(3);
+      renderer.toneMappingExposure = lerp(1.05, 0.88, inside) + 0.05 * night; hint.style.opacity = (1 - smooth(0.0, 0.05, p)).toFixed(3);
       sky.material.uniforms.top.value.lerpColors(C_T0, C_T1, gold); sky.material.uniforms.hor.value.lerpColors(C_H0, C_H1, gold); scene.fog.color.copy(sky.material.uniforms.hor.value);
-      sun.color.lerpColors(C_S0, C_S1, gold); sun.intensity = lerp(2.6, 2.1, gold); hemi.intensity = lerp(0.38, 0.3, gold);
+      sun.color.lerpColors(C_S0, C_S1, gold); sun.intensity = lerp(3.0, 2.4, gold); hemi.intensity = lerp(0.62, 0.45, gold);
       lampLights.forEach(l => { l.intensity = l.userData.k * (0.3 + 0.6 * night); });
       smoke.forEach((sp, i) => { const t = ((now / 7000 + i / smoke.length) % 1); sp.position.set(3.6 + t * 1.6 + Math.sin(i) * 0.15, WH + 3.9 + t * 5, -1.4 + t * 0.6); sp.scale.setScalar(0.6 + t * 3.2); sp.material.opacity = 0.42 * Math.sin(t * Math.PI) * (1 - t * 0.4); });
       birds.forEach(b => { const i = b.userData.i, a = now / (9000 + i * 900) * Math.PI * 2 + i * 0.9, R = 30 + i * 3.5; b.position.set(Math.cos(a) * R, 17 + i * 1.6 + Math.sin(now / 1100 + i) * 0.6, Math.sin(a) * R * 0.8); b.rotation.y = -a; const f = Math.sin(now / 90 + i * 2) * 0.7; b.userData.wl.rotation.z = f; b.userData.wr.rotation.z = -f; b.visible = p < 0.4; });
