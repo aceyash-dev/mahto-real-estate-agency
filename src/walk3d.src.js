@@ -19,8 +19,19 @@ const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function hasWebGL2() {
   try { return !!document.createElement("canvas").getContext("webgl2"); } catch (_) { return false; }
 }
-if (section && sticky && !reduce && hasWebGL2()) {
-  try { init(); } catch (e) { console.warn("walk3d disabled:", e); document.documentElement.classList.remove("is-3d"); }
+/* Lazy start: build the scene only when the section is near the viewport, in idle time, and not on Save-Data. */
+const conn = navigator.connection || {};
+if (section && sticky && !reduce && !conn.saveData && "IntersectionObserver" in window) {
+  const start = () => {
+    if (!hasWebGL2()) return;
+    try { init(); } catch (e) { console.warn("walk3d disabled:", e); document.documentElement.classList.remove("is-3d"); }
+  };
+  const io = new IntersectionObserver(entries => {
+    if (!entries.some(e => e.isIntersecting)) return;
+    io.disconnect();
+    (window.requestIdleCallback || (f => setTimeout(f, 60)))(start, { timeout: 1500 });
+  }, { rootMargin: "150% 0px" });
+  io.observe(section);
 }
 
 function init() {
