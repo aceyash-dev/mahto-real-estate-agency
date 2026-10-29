@@ -383,3 +383,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--forest) var(--stone); }
 .faq-list details[open] summary::after { transform: rotate(45deg); }
 .faq-list details p { margin: 0 0 22px; max-width: 60ch; color: var(--muted); font-size: .92rem; }
 @media (max-width: 780px) { .faq-layout { grid-template-columns: 1fr; } .glance div { grid-template-columns: 96px 1fr; } }
+
+.art-photo { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; }
+.art-frame .topography { opacity: .16; mix-blend-mode: soft-light; }
+.art-frame::before { z-index: 1; }
+.art-stamp, .art-caption, .art-frame > :not(img):not(svg) { z-index: 2; }
+.art-frame::before { background: linear-gradient(to top, rgb(10 30 22 / 72%), rgb(10 30 22 / 0%) 42%); }
+.art-frame .art-stamp, .art-frame .art-caption { color: #fff; text-shadow: 0 1px 8px rgb(0 0 0 / 45%); }
+.art-frame .art-stamp > span:first-child { border-color: rgb(255 255 255 / 60%); }
