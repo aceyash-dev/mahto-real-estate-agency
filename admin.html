@@ -39,13 +39,23 @@
 
       <div id="view-listings" role="tabpanel" aria-labelledby="tab-listings">
         <p id="role-note" class="note"></p>
-        <div class="bar-actions"><button class="btn" id="new-listing" type="button">+ New listing</button><button class="btn" id="refresh-listings" type="button">Refresh</button></div>
+        <div class="bar-actions"><button class="btn" id="new-listing" type="button">+ New listing</button><button class="btn" id="refresh-listings" type="button">Refresh</button><div class="seg" id="lfilter" role="group" aria-label="Show"><button type="button" data-f="all" aria-pressed="true">All</button><button type="button" data-f="pending" aria-pressed="false">Pending review <b id="pend-n">0</b></button><button type="button" data-f="live" aria-pressed="false">Live</button></div></div>
         <form id="listing-form" class="card-form" hidden>
           <h2 id="lf-title">New listing</h2>
           <input type="hidden" name="id">
           <div class="grid2">
-            <label>Title *<input name="title" required maxlength="180"></label>
-            <label>Type *<select name="property_type" required><option>Plot / Land</option><option>House</option><option>Flat / Apartment</option><option>Commercial property</option><option>Other</option></select></label>
+            <label>Property name *<input name="title" required maxlength="180" placeholder="e.g. 5 katha plot near Ranchi bypass"></label>
+            <label>Location *<input name="general_location" required maxlength="220" placeholder="Area, city"></label>
+          </div>
+          <div class="photos">
+            <label for="lf-photos">Photos <span class="muted">(up to 8, JPG/PNG/WebP)</span></label>
+            <input id="lf-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+            <ul id="lf-thumbs" class="thumbs" aria-live="polite"></ul>
+            <label class="check"><input type="checkbox" id="lf-rights" required> I own this property or am authorised to list it, and I may share these photos.</label>
+          </div>
+          <details class="more"><summary>Add more details (price, size, type, description)</summary>
+          <div class="grid2">
+            <label>Type<select name="property_type"><option>Plot / Land</option><option>House</option><option>Flat / Apartment</option><option>Commercial property</option><option>Other</option></select></label>
             <label>Availability<select name="availability_status"><option>Available</option><option>Under Discussion</option><option>Reserved</option><option>Sold</option></select></label>
             <label>Asking price (₹)<input name="asking_price" type="number" min="0" step="any" inputmode="decimal"></label>
             <label>Area<input name="area_value" type="number" min="0" step="any" inputmode="decimal"></label>
@@ -55,10 +65,10 @@
             <label>District<input name="district" maxlength="120"></label>
             <label>State<input name="state" maxlength="120"></label>
             <label>PIN code<input name="pin_code" maxlength="12" inputmode="numeric"></label>
-            <label>Photo URL (https)<input name="photo_url" type="url" maxlength="500"></label>
           </div>
           <label>Short summary<input name="summary" maxlength="300"></label>
           <label>Description<textarea name="description" rows="4" maxlength="3000"></textarea></label>
+          </details>
           <p id="lf-msg" class="msg" role="alert"></p>
           <div class="bar-actions"><button class="btn primary inline" type="submit">Save listing</button><button class="btn" id="lf-cancel" type="button">Cancel</button></div>
         </form>

@@ -71,6 +71,14 @@ export async function ensureSchema(sql) {
     last_login_at TIMESTAMPTZ
   )`;
   await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS owner_user_id BIGINT`;
+  await sql`CREATE TABLE IF NOT EXISTS listing_images (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    property_id BIGINT NOT NULL,
+    mime VARCHAR(30) NOT NULL,
+    data_b64 TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS listing_images_property_idx ON listing_images (property_id)`;
   ready = true;
 }
 

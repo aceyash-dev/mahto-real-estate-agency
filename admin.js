@@ -4,7 +4,7 @@
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const fmt = iso => { try { return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }); } catch (_) { return String(iso); } };
   const money = n => n == null ? "" : "₹" + Number(n).toLocaleString("en-IN");
-  let me = null, status = "all", offset = 0, total = 0, timer = 0, rows = [];
+  let me = null, lfilter = "all", cache = [], photos = [], status = "all", offset = 0, total = 0, timer = 0, rows = [];
   const ENQ = "/api/admin/enquiries";
 
   /* Cookie session: the browser sends it automatically. No token is ever kept in JS or storage. */
@@ -45,7 +45,7 @@
   /* ---------- Listings ---------- */
   const form = $("#listing-form");
   function openForm(l) {
-    form.reset(); form.hidden = false; $("#lf-msg").textContent = "";
+    form.reset(); photos = []; thumbs(); form.hidden = false; $("#lf-msg").textContent = "";
     $("#lf-title").textContent = l ? "Edit listing" : "New listing";
     form.elements.id.value = l ? l.id : "";
     if (l) for (const [k, v] of Object.entries(l)) if (form.elements[k] && k !== "id") form.elements[k].value = v == null ? "" : v;
@@ -54,11 +54,18 @@
   function stateOf(l) { return l.is_active && l.admin_approved ? ["Live", "ok"] : l.admin_approved ? ["Paused", "warn"] : ["Awaiting approval", "warn"]; }
   async function loadListings() {
     try {
-      const d = await call("/api/admin/listings"), ul = $("#listings"); ul.replaceChildren();
-      d.listings.forEach((l, i) => ul.append(listingCard(l, i)));
-      $("#listings-empty").hidden = d.listings.length > 0;
+      cache = (await call("/api/admin/listings")).listings; paint();
     } catch (e) { if (!expired(e)) { $("#listings-empty").hidden = false; $("#listings-empty").textContent = e.message; } }
   }
+  const isPending = l => !(l.is_active && l.admin_approved);
+  function paint() {
+    const ul = $("#listings"); ul.replaceChildren();
+    const shown = cache.filter(l => lfilter === "all" || (lfilter === "pending" ? isPending(l) : !isPending(l)));
+    shown.forEach((l, i) => ul.append(listingCard(l, i)));
+    const n = cache.filter(isPending).length; $("#pend-n").textContent = n; $("#tab-listings").textContent = n && me && me.role === "admin" ? "Listings (" + n + " pending)" : "Listings";
+    $("#listings-empty").hidden = shown.length > 0; $("#listings-empty").textContent = lfilter === "pending" ? "Nothing waiting for review." : "No listings yet.";
+  }
+  $$("#lfilter button").forEach(b => b.addEventListener("click", () => { lfilter = b.dataset.f; $$("#lfilter button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); paint(); }));
   function listingCard(l, i) {
     const li = el("li", "item"); li.style.setProperty("--i", Math.min(i, 12));
     const top = el("div", "top"); top.append(el("strong", "", l.title)); const [st, cls] = stateOf(l); top.append(el("span", "pill " + cls, st));
@@ -74,12 +81,33 @@
     if (me.role === "admin" || !l.admin_approved) btn("Delete", async () => { if (confirm("Remove this listing?")) { await post("/api/admin/listings", { id: l.id }, "DELETE"); loadListings(); } });
     li.append(acts); return li;
   }
+  /* Photos are resized in the browser (max 1280px, JPEG) before upload. */
+  function resize(file) {
+    return new Promise((res, rej) => {
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => { const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.8)); };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("Could not read " + file.name)); }; img.src = url;
+    });
+  }
+  function thumbs() {
+    const ul = $("#lf-thumbs"); ul.replaceChildren();
+    photos.forEach((p, i) => { const li = el("li"), im = el("img"); im.src = p; im.alt = "Selected photo " + (i + 1); const x = el("button", "", "×"); x.type = "button"; x.setAttribute("aria-label", "Remove photo " + (i + 1)); x.addEventListener("click", () => { photos.splice(i, 1); thumbs(); }); li.append(im, x); ul.append(li); });
+  }
+  $("#lf-photos").addEventListener("change", async e => {
+    const msg = $("#lf-msg"); msg.textContent = "";
+    for (const f of [...e.target.files]) { if (photos.length >= 8) { msg.textContent = "Up to 8 photos."; break; } try { photos.push(await resize(f)); } catch (err) { msg.textContent = err.message; } }
+    e.target.value = ""; thumbs();
+  });
   form.addEventListener("submit", async e => {
     e.preventDefault(); const b = form.querySelector("[type=submit]"), msg = $("#lf-msg"); b.disabled = true; msg.textContent = ""; msg.classList.remove("okmsg");
-    const body = Object.fromEntries(new FormData(form)); const id = body.id; delete body.id;
+    const body = Object.fromEntries(new FormData(form)); const id = body.id; delete body.id; if (!$("#lf-rights").checked) { msg.textContent = "Please confirm you are authorised to list this property."; b.disabled = false; return; }
     try {
+      if (!body.city && body.general_location) body.city = body.general_location.split(",").pop().trim().slice(0, 120);
       const d = id ? await post("/api/admin/listings", { ...body, id: Number(id) }, "PATCH") : await post("/api/admin/listings", body);
-      msg.classList.add("okmsg"); msg.textContent = d.message || "Saved."; form.hidden = true; loadListings();
+      const lid = d.listing.id; let failed = 0;
+      for (const p of photos) { try { await post("/api/admin/images", { property_id: lid, data_url: p }); } catch (er) { failed++; if (er.status === 401) throw er; } }
+      photos = []; thumbs();
+      msg.classList.add("okmsg"); msg.textContent = (d.message || "Saved.") + (failed ? " " + failed + " photo(s) could not be uploaded." : ""); form.hidden = true; loadListings();
     } catch (err) { if (!expired(err)) msg.textContent = err.message; } finally { b.disabled = false; }
   });
   $("#new-listing").addEventListener("click", () => openForm(null));
