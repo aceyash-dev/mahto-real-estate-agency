@@ -23,3 +23,6 @@
 }
 @media(max-width:380px){.filter-panel{grid-template-columns:1fr}.filter-panel .filter-wide,.filter-panel .filter-actions,.filter-panel .filter-privacy{grid-column:1}}
 @media(prefers-reduced-motion:reduce){.filter-panel{transition:none}}
+
+* { -webkit-tap-highlight-color: transparent; }
+a, button, summary, label, input, select, textarea { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
