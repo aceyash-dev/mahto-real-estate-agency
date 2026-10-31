@@ -22,10 +22,11 @@
 
   /* Smooth scrolling. Lenis drives native scroll, so Motion's scroll() keeps working. */
   const lenis = new window.Lenis({
-    lerp: 0.085,
+    lerp: 0.1,
     wheelMultiplier: 0.9,
     smoothWheel: true,
-    touchMultiplier: 1.2
+    touchMultiplier: 1.4,
+    syncTouch: false
   });
   const raf = time => { lenis.raf(time); requestAnimationFrame(raf); };
   requestAnimationFrame(raf);

@@ -51,12 +51,12 @@ function init() {
   let tier = (coarse || mem <= 3 || cores <= 4 || Math.min(screen.width, screen.height) < 700) ? 1 : 2;
   if (mem <= 2 || cores <= 2) tier = 0;
   const TIER = [
-    { dpr: 1.25, shadow: 1024, trees: 36, tufts: 0, motes: 60 },
-    { dpr: 1.75, shadow: 1024, trees: 60, tufts: 0, motes: 120 },
-    { dpr: 2, shadow: 2048, trees: 90, tufts: 0, motes: 200 }
+    { dpr: 1.5, shadow: 1024, trees: 36, tufts: 0, motes: 60 },
+    { dpr: 2, shadow: 1536, trees: 60, tufts: 0, motes: 120 },
+    { dpr: 2.5, shadow: 3072, trees: 90, tufts: 0, motes: 200 }
   ];
 
-  const renderer = new THREE.WebGLRenderer({ antialias: tier > 0, powerPreference: "high-performance" });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, TIER[tier].dpr));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -770,7 +770,7 @@ function init() {
   function makeComposer() {
     try {
       const w = sticky.clientWidth || 800, h = sticky.clientHeight || 500;
-      composer = new EffectComposer(renderer); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h);
+      const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: 4 }); composer = new EffectComposer(renderer, rt); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h);
       composer.addPass(new RenderPass(scene, camera));
             bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.1, 0.5, 0.96); composer.addPass(bloom);
       composer.addPass(new OutputPass());
@@ -849,7 +849,7 @@ function init() {
     if (!visible) { last = now; return; }
     try {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      current += (progressNow() - current) * (1 - Math.exp(-dt * 11));
+      current += (progressNow() - current) * (1 - Math.exp(-dt * 14));
       const p = current, u = toU(p);
       posCurve.getPoint(u, camPos); tgtCurve.getPoint(u, camTgt);
       const sway = smooth(0.48, 0.56, p) * 0.016;
@@ -884,7 +884,7 @@ function init() {
 
       frames++; if (frames === 3) canvas.classList.add("is-ready");
       if (frames > 4 && !healthDone) { healthDone = true; if (checkBlank()) { fallback("blank render"); return; } }
-      if (frames > 20 && !window.__WALK3D_TEST) { ema = ema * 0.94 + (dt * 1000) * 0.06; if (ema > 38) { if (++slow > 50) downgrade(); } else slow = Math.max(0, slow - 2); }
+      if (frames > 20 && !window.__WALK3D_TEST) { ema = ema * 0.94 + (dt * 1000) * 0.06; if (ema > 30) { if (++slow > 40) downgrade(); } else slow = Math.max(0, slow - 2); }
 
       if (head) head.style.opacity = (1 - smooth(0.1, 0.2, p)).toFixed(3);
       caps.forEach(c => { const a = +c.dataset.in, b = +c.dataset.out, o = smooth(a, a + 0.04, p) * (1 - smooth(b - 0.04, b, p)); c.style.opacity = o.toFixed(3); c.style.transform = `translate3d(0,${((1 - o) * 24).toFixed(1)}px,0)`; });
