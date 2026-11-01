@@ -4,7 +4,7 @@
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const fmt = iso => { try { return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }); } catch (_) { return String(iso); } };
   const money = n => n == null ? "" : "₹" + Number(n).toLocaleString("en-IN");
-  let me = null, lfilter = "all", cache = [], photos = [], status = "all", offset = 0, total = 0, timer = 0, rows = [];
+  let me = null, lfilter = "all", cache = [], photos = [], status = "all", offset = 0, total = 0, handledTotal = 0, timer = 0, rows = [];
   const ENQ = "/api/admin/enquiries";
 
   /* Cookie session: the browser sends it automatically. No token is ever kept in JS or storage. */
@@ -149,12 +149,12 @@
     const params = new URLSearchParams({ status, limit: "50", offset: String(offset) }); if (q) params.set("q", q);
     try {
       const d = await call(ENQ + "?" + params);
-      rows = append ? rows.concat(d.enquiries) : d.enquiries; total = d.total; offset = rows.length; render(d);
+      rows = append ? rows.concat(d.enquiries) : d.enquiries; total = d.total; if (Number.isFinite(d.handled)) handledTotal = d.handled; offset = rows.length; render(d);
     } catch (e) { if (expired(e)) return; $("#note").hidden = false; $("#note").textContent = e.message; }
   }
   function render(d) {
     const list = $("#list"); list.replaceChildren();
-    if (status === "all" && !$("#q").value.trim()) { $("#s-total").textContent = total; $("#s-done").textContent = d.handled ?? 0; $("#s-new").textContent = Math.max(total - (d.handled ?? 0), 0); }
+    if (status === "all" && !$("#q").value.trim()) { $("#s-total").textContent = total; $("#s-done").textContent = handledTotal; $("#s-new").textContent = Math.max(total - handledTotal, 0); }
     const chip = $("#mail-state"); chip.textContent = d.emailNotifications ? "Email alerts on" : "Email alerts off"; chip.classList.toggle("off", !d.emailNotifications);
     const note = $("#note"); note.hidden = d.handledColumn; if (!d.handledColumn) note.textContent = "Handled tracking needs one database step: run the last line of schema.sql.";
     rows.forEach((r, i) => list.append(card(r, i % 12, d.handledColumn)));
@@ -172,7 +172,7 @@
     acts.append(a("Call " + r.phone, "tel:" + (digits.length === 10 ? "+91" : "+") + digits));
     acts.append(a("WhatsApp", "https://wa.me/" + (digits.length === 10 ? "91" + digits : digits) + "?text=" + encodeURIComponent("Hello " + r.name + ", this is Mahto Real Estate Agency regarding your enquiry."), true));
     if (r.email) acts.append(a("Email reply", "mailto:" + encodeURIComponent(r.email).replace(/%40/g, "@") + "?subject=" + encodeURIComponent("Your enquiry to Mahto Real Estate Agency (#" + r.id + ")")));
-    if (canMark) { const b = el("button", "", r.handled_at ? "Mark as new" : "Mark handled"); b.type = "button"; b.addEventListener("click", async () => { b.disabled = true; try { await call(ENQ, { method: "PATCH", body: JSON.stringify({ id: r.id, handled: !r.handled_at }) }); r.handled_at = r.handled_at ? null : new Date().toISOString(); render({ handledColumn: true, emailNotifications: !$("#mail-state").classList.contains("off") }); } catch (e) { b.disabled = false; $("#note").hidden = false; $("#note").textContent = e.message; } }); acts.append(b); }
+    if (canMark) { const b = el("button", "", r.handled_at ? "Mark as new" : "Mark handled"); b.type = "button"; b.addEventListener("click", async () => { b.disabled = true; try { await call(ENQ, { method: "PATCH", body: JSON.stringify({ id: r.id, handled: !r.handled_at }) }); r.handled_at = r.handled_at ? null : new Date().toISOString(); handledTotal = Math.max(0, handledTotal + (r.handled_at ? 1 : -1)); render({ handledColumn: true, handled: handledTotal, emailNotifications: !$("#mail-state").classList.contains("off") }); } catch (e) { b.disabled = false; $("#note").hidden = false; $("#note").textContent = e.message; } }); acts.append(b); }
     li.append(acts); return li;
   }
   async function exportCsv() {

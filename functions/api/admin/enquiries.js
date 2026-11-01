@@ -40,7 +40,6 @@ export async function onRequest({ request, env }) {
         WHERE (${like}::text IS NULL OR name ILIKE ${like} OR phone ILIKE ${like} OR email ILIKE ${like} OR location ILIKE ${like} OR details ILIKE ${like} OR interest ILIKE ${like})
           AND (${status} = 'all' OR (${status} = 'new' AND handled_at IS NULL) OR (${status} = 'handled' AND handled_at IS NOT NULL))
         ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
-      const searchWhere = `(${like}::text IS NULL OR name ILIKE ${like} OR phone ILIKE ${like} OR email ILIKE ${like} OR location ILIKE ${like} OR details ILIKE ${like} OR interest ILIKE ${like})`;
       total = (await sql`SELECT COUNT(*)::int AS n FROM enquiries
         WHERE (${like}::text IS NULL OR name ILIKE ${like} OR phone ILIKE ${like} OR email ILIKE ${like} OR location ILIKE ${like} OR details ILIKE ${like} OR interest ILIKE ${like})
           AND (${status} = 'all' OR (${status} = 'new' AND handled_at IS NULL) OR (${status} = 'handled' AND handled_at IS NOT NULL))`)[0].n;
