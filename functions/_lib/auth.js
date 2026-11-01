@@ -29,7 +29,8 @@ export async function verifyPassword(password, stored) {
   const p = String(stored || "").split("$");
   const iterations = Number(p[1]);
   if (p.length !== 4 || p[0] !== "pbkdf2" || !/^\d+$/.test(p[1]) ||
-      !Number.isSafeInteger(iterations) || iterations < 1 || iterations > 10000000) return false;
+      !Number.isSafeInteger(iterations) || iterations < 1 || iterations > 10000000 ||
+      !/^[A-Za-z0-9_-]*$/.test(p[2]) || p[2].length % 4 === 1) return false;
   return safeEqual(await hashPassword(password, p[2], iterations), stored);
 }
 
