@@ -31,3 +31,7 @@ Cloudflare Pages secrets (Settings > Variables and Secrets, Production):
 | `DATABASE_URL` | Neon connection string (already used) |
 
 The `users` table and `properties.owner_user_id` column are created automatically on first use.
+
+
+## Environment template
+Copy `.env.example` into the Cloudflare Pages environment settings manually. It documents variable names only; do not commit secrets. The legacy Vercel `api/` handlers have been removed so Cloudflare Pages Functions under `functions/` are the single source of truth.

@@ -43,6 +43,9 @@ export async function onRequest({ request, env }) {
       total = (await sql`SELECT COUNT(*)::int AS n FROM enquiries
         WHERE (${like}::text IS NULL OR name ILIKE ${like} OR phone ILIKE ${like} OR email ILIKE ${like} OR location ILIKE ${like} OR details ILIKE ${like} OR interest ILIKE ${like})
           AND (${status} = 'all' OR (${status} = 'new' AND handled_at IS NULL) OR (${status} = 'handled' AND handled_at IS NOT NULL))`)[0].n;
+      var handled = (await sql`SELECT COUNT(*)::int AS n FROM enquiries
+        WHERE (${like}::text IS NULL OR name ILIKE ${like} OR phone ILIKE ${like} OR email ILIKE ${like} OR location ILIKE ${like} OR details ILIKE ${like} OR interest ILIKE ${like})
+          AND handled_at IS NOT NULL`)[0].n;
     } catch (e) {
       if (!missingColumn(e)) throw e;
       handledColumn = false;
@@ -54,7 +57,7 @@ export async function onRequest({ request, env }) {
         WHERE (${like}::text IS NULL OR name ILIKE ${like} OR phone ILIKE ${like} OR email ILIKE ${like} OR location ILIKE ${like} OR details ILIKE ${like})
           AND (${status} <> 'handled')`)[0].n;
     }
-    return out({ enquiries: rows, total, handledColumn, emailNotifications: Boolean(env.RESEND_API_KEY && env.ENQUIRY_FROM_EMAIL && env.ENQUIRY_NOTIFICATION_TO) });
+    return out({ enquiries: rows, total, handled: handledColumn ? handled : 0, handledColumn, emailNotifications: Boolean(env.RESEND_API_KEY && env.ENQUIRY_FROM_EMAIL && env.ENQUIRY_NOTIFICATION_TO) });
   } catch (e) {
     console.error("admin enquiries failed", e instanceof Error ? e.message : "unknown");
     return out({ error: "Could not read enquiries." }, 500);

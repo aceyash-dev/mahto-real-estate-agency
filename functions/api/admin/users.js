@@ -18,7 +18,10 @@ export async function onRequest({ request, env }) {
       try {
         const r = await sql`INSERT INTO users (email, name, phone, role, password_hash) VALUES (${email}, ${name}, ${txt(b.phone, 20) || null}, ${role}, ${await hashPassword(pw)}) RETURNING id, email, name, role, is_active`;
         return json({ user: r[0] }, 201);
-      } catch (e) { return /unique|duplicate/i.test(String(e.message)) ? json({ error: "A user with that email already exists." }, 409) : Promise.reject(e); }
+      } catch (e) {
+        if (/unique|duplicate/i.test(String(e && e.message))) return json({ error: "A user with that email already exists." }, 409);
+        throw e;
+      }
     }
     if (request.method === "PATCH") {
       const id = Number(b.id); if (!Number.isSafeInteger(id) || id < 1) return json({ error: "Valid user id required." }, 400);

@@ -2,7 +2,9 @@ import { neon } from "@neondatabase/serverless";
 import { json, safeEqual, hashPassword, verifyPassword, makeSession, cookieHeader, getSession, sameOrigin, ensureSchema } from "../../_lib/auth.js";
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const fails = new Map(); /* per-isolate throttle; the constant delay below is the real brake */
+const fails = new Map();
+const MAX_FAILURE_KEYS = 5000;
+const FAILURE_TTL_MS = 10 * 60 * 1000;
 
 export async function onRequest({ request, env, params }) {
   const action = params.action;
@@ -37,7 +39,15 @@ export async function onRequest({ request, env, params }) {
       if (r && ok && r.is_active) { user = { uid: Number(r.id), email: r.email, name: r.name, role: r.role }; await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`; }
     } catch (e) { console.error("login failed", e instanceof Error ? e.message : "unknown"); return json({ error: "Sign-in is temporarily unavailable." }, 500); }
   }
-  if (!user) { f.n++; fails.set(ip, f); await new Promise(r => setTimeout(r, 500)); return json({ error: "Email or password is incorrect." }, 401); }
+  if (!user) {
+    f.n++; fails.set(ip, f);
+    if (fails.size > MAX_FAILURE_KEYS) {
+      for (const [key, value] of fails) if (now - value.t > FAILURE_TTL_MS) fails.delete(key);
+      while (fails.size > MAX_FAILURE_KEYS) fails.delete(fails.keys().next().value);
+    }
+    await new Promise(r => setTimeout(r, 500));
+    return json({ error: "Email or password is incorrect." }, 401);
+  }
   fails.delete(ip);
   return json({ user: { email: user.email, name: user.name, role: user.role } }, 200, { "Set-Cookie": cookieHeader(await makeSession(env, user)) });
 }

@@ -4,7 +4,7 @@
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const fmt = iso => { try { return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }); } catch (_) { return String(iso); } };
   const money = n => n == null ? "" : "₹" + Number(n).toLocaleString("en-IN");
-  let me = null, lfilter = "all", cache = [], photos = [], status = "all", offset = 0, total = 0, timer = 0, rows = [];
+  let me = null, lfilter = "all", cache = [], photos = [], status = "all", offset = 0, total = 0, handledTotal = 0, timer = 0, rows = [];
   const ENQ = "/api/admin/enquiries";
 
   /* Cookie session: the browser sends it automatically. No token is ever kept in JS or storage. */
@@ -35,10 +35,17 @@
   async function signOut(msg) { try { await post("/api/auth/logout", {}); } catch (_) { /* ignore */ } me = null; show(false); $("#password").value = ""; $("#login-msg").textContent = msg || ""; }
   const expired = e => { if (e.status === 401) { signOut("Your session ended. Please sign in again."); return true; } return false; };
 
-  function tab(name) {
-    $$("[role=tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  function tab(name, moveFocus = false) {
+    const buttons = $$("[role=tab]").filter(b => !b.hidden);
+    if (!buttons.some(b => b.dataset.tab === name)) return;
+    buttons.forEach(b => {
+      const selected = b.dataset.tab === name;
+      b.setAttribute("aria-selected", String(selected));
+      b.tabIndex = selected ? 0 : -1;
+    });
     ["listings", "enquiries", "team"].forEach(n => { $("#view-" + n).hidden = n !== name; });
     $("#panel-title").textContent = { listings: "Listings", enquiries: "Enquiries", team: "Team" }[name];
+    if (moveFocus) $("#tab-" + name).focus();
     if (name === "enquiries") load(); if (name === "team") loadUsers();
   }
 
@@ -142,13 +149,12 @@
     const params = new URLSearchParams({ status, limit: "50", offset: String(offset) }); if (q) params.set("q", q);
     try {
       const d = await call(ENQ + "?" + params);
-      rows = append ? rows.concat(d.enquiries) : d.enquiries; total = d.total; offset = rows.length; render(d);
+      rows = append ? rows.concat(d.enquiries) : d.enquiries; total = d.total; if (Number.isFinite(d.handled)) handledTotal = d.handled; offset = rows.length; render(d);
     } catch (e) { if (expired(e)) return; $("#note").hidden = false; $("#note").textContent = e.message; }
   }
   function render(d) {
     const list = $("#list"); list.replaceChildren();
-    const handled = rows.filter(r => r.handled_at).length;
-    if (status === "all" && !$("#q").value.trim()) { $("#s-total").textContent = total; $("#s-done").textContent = handled; $("#s-new").textContent = Math.max(total - handled, 0); }
+    if (status === "all" && !$("#q").value.trim()) { $("#s-total").textContent = total; $("#s-done").textContent = handledTotal; $("#s-new").textContent = Math.max(total - handledTotal, 0); }
     const chip = $("#mail-state"); chip.textContent = d.emailNotifications ? "Email alerts on" : "Email alerts off"; chip.classList.toggle("off", !d.emailNotifications);
     const note = $("#note"); note.hidden = d.handledColumn; if (!d.handledColumn) note.textContent = "Handled tracking needs one database step: run the last line of schema.sql.";
     rows.forEach((r, i) => list.append(card(r, i % 12, d.handledColumn)));
@@ -166,7 +172,7 @@
     acts.append(a("Call " + r.phone, "tel:" + (digits.length === 10 ? "+91" : "+") + digits));
     acts.append(a("WhatsApp", "https://wa.me/" + (digits.length === 10 ? "91" + digits : digits) + "?text=" + encodeURIComponent("Hello " + r.name + ", this is Mahto Real Estate Agency regarding your enquiry."), true));
     if (r.email) acts.append(a("Email reply", "mailto:" + encodeURIComponent(r.email).replace(/%40/g, "@") + "?subject=" + encodeURIComponent("Your enquiry to Mahto Real Estate Agency (#" + r.id + ")")));
-    if (canMark) { const b = el("button", "", r.handled_at ? "Mark as new" : "Mark handled"); b.type = "button"; b.addEventListener("click", async () => { b.disabled = true; try { await call(ENQ, { method: "PATCH", body: JSON.stringify({ id: r.id, handled: !r.handled_at }) }); r.handled_at = r.handled_at ? null : new Date().toISOString(); render({ handledColumn: true, emailNotifications: !$("#mail-state").classList.contains("off") }); } catch (e) { b.disabled = false; $("#note").hidden = false; $("#note").textContent = e.message; } }); acts.append(b); }
+    if (canMark) { const b = el("button", "", r.handled_at ? "Mark as new" : "Mark handled"); b.type = "button"; b.addEventListener("click", async () => { b.disabled = true; try { await call(ENQ, { method: "PATCH", body: JSON.stringify({ id: r.id, handled: !r.handled_at }) }); r.handled_at = r.handled_at ? null : new Date().toISOString(); handledTotal = Math.max(0, handledTotal + (r.handled_at ? 1 : -1)); render({ handledColumn: true, handled: handledTotal, emailNotifications: !$("#mail-state").classList.contains("off") }); } catch (e) { b.disabled = false; $("#note").hidden = false; $("#note").textContent = e.message; } }); acts.append(b); }
     li.append(acts); return li;
   }
   async function exportCsv() {
@@ -196,7 +202,21 @@
   $("#more").addEventListener("click", () => load(true));
   $("#q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => load(), 300); });
   $$(".seg button").forEach(b => b.addEventListener("click", () => { status = b.dataset.s; $$(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); load(); }));
-  $$("[role=tab]").forEach(b => b.addEventListener("click", () => tab(b.dataset.tab)));
+  const tablist = document.querySelector('[role="tablist"]');
+  tablist.addEventListener("click", e => { const b = e.target.closest('[role="tab"]'); if (b && !b.hidden) tab(b.dataset.tab); });
+  tablist.addEventListener("keydown", e => {
+    const current = e.target.closest('[role="tab"]');
+    if (!current) return;
+    const buttons = $$("[role=tab]").filter(b => !b.hidden);
+    const index = buttons.indexOf(current);
+    let next = index;
+    if (e.key === "ArrowRight") next = (index + 1) % buttons.length;
+    else if (e.key === "ArrowLeft") next = (index - 1 + buttons.length) % buttons.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = buttons.length - 1;
+    else return;
+    e.preventDefault(); tab(buttons[next].dataset.tab, true);
+  });
 
   /* Resume an existing session. */
   call("/api/auth/me").then(d => enter(d.user)).catch(() => show(false));
