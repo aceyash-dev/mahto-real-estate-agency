@@ -81,3 +81,21 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at TIMESTAMPTZ
 );
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS owner_user_id BIGINT;
+
+-- Global, privacy-preserving throttle for public enquiry submissions.
+CREATE TABLE IF NOT EXISTS enquiry_rate_limits (
+  ip_hash CHAR(64) PRIMARY KEY,
+  window_started_at TIMESTAMPTZ NOT NULL,
+  request_count INTEGER NOT NULL CHECK (request_count > 0),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS enquiry_rate_limits_updated_idx ON enquiry_rate_limits (updated_at);
+
+-- Audit trail for property moderation and administrative writes.
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  action VARCHAR(40) NOT NULL,
+  property_slug VARCHAR(180) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS admin_audit_log_slug_idx ON admin_audit_log (property_slug, created_at DESC);

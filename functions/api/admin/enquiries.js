@@ -48,8 +48,11 @@ export async function onRequest({ request, env }) {
       handledColumn = false;
       rows = await sql`SELECT id, name, phone, email, interest, property_type, location, budget, details, source, created_at FROM enquiries
         WHERE (${like}::text IS NULL OR name ILIKE ${like} OR phone ILIKE ${like} OR email ILIKE ${like} OR location ILIKE ${like} OR details ILIKE ${like})
+          AND (${status} <> 'handled')
         ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
-      total = (await sql`SELECT COUNT(*)::int AS n FROM enquiries`)[0].n;
+      total = (await sql`SELECT COUNT(*)::int AS n FROM enquiries
+        WHERE (${like}::text IS NULL OR name ILIKE ${like} OR phone ILIKE ${like} OR email ILIKE ${like} OR location ILIKE ${like} OR details ILIKE ${like})
+          AND (${status} <> 'handled')`)[0].n;
     }
     return out({ enquiries: rows, total, handledColumn, emailNotifications: Boolean(env.RESEND_API_KEY && env.ENQUIRY_FROM_EMAIL && env.ENQUIRY_NOTIFICATION_TO) });
   } catch (e) {
