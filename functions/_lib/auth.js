@@ -16,16 +16,22 @@ export function safeEqual(a, b) {
 }
 const hmacKey = secret => crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
 
-export async function hashPassword(password, saltB64) {
+export async function hashPassword(password, saltB64, iterations = 100000) {
+  if (!Number.isSafeInteger(iterations) || iterations < 1 || iterations > 10000000) {
+    throw new RangeError("Invalid PBKDF2 iteration count.");
+  }
   const salt = saltB64 ? unb64u(saltB64) : crypto.getRandomValues(new Uint8Array(16));
   const key = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 100000 }, key, 256);
-  return `pbkdf2$100000$${b64u(salt)}$${b64u(bits)}`;
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256);
+  return `pbkdf2$${iterations}$${b64u(salt)}$${b64u(bits)}`;
 }
 export async function verifyPassword(password, stored) {
   const p = String(stored || "").split("$");
-  if (p.length !== 4 || p[0] !== "pbkdf2") return false;
-  return safeEqual(await hashPassword(password, p[2]), stored);
+  const iterations = Number(p[1]);
+  if (p.length !== 4 || p[0] !== "pbkdf2" || !/^\d+$/.test(p[1]) ||
+      !Number.isSafeInteger(iterations) || iterations < 1 || iterations > 10000000 ||
+      !/^[A-Za-z0-9_-]*$/.test(p[2]) || p[2].length % 4 === 1) return false;
+  return safeEqual(await hashPassword(password, p[2], iterations), stored);
 }
 
 export async function makeSession(env, user) {
