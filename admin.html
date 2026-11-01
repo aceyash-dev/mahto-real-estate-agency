@@ -32,12 +32,12 @@
         <div class="bar-actions"><span id="role-chip" class="chip"></span><button class="btn" id="logout" type="button">Sign out</button></div>
       </header>
       <nav class="tabs" role="tablist" aria-label="Sections">
-        <button role="tab" id="tab-listings" data-tab="listings" aria-selected="true">Listings</button>
-        <button role="tab" id="tab-enquiries" data-tab="enquiries" aria-selected="false" data-admin>Enquiries</button>
-        <button role="tab" id="tab-team" data-tab="team" aria-selected="false" data-admin>Team</button>
+        <button role="tab" id="tab-listings" data-tab="listings" aria-selected="true" tabindex="0">Listings</button>
+        <button role="tab" id="tab-enquiries" data-tab="enquiries" aria-selected="false" tabindex="-1" data-admin>Enquiries</button>
+        <button role="tab" id="tab-team" data-tab="team" aria-selected="false" tabindex="-1" data-admin>Team</button>
       </nav>
 
-      <div id="view-listings" role="tabpanel" aria-labelledby="tab-listings">
+      <div id="view-listings" role="tabpanel" tabindex="0" aria-labelledby="tab-listings">
         <p id="role-note" class="note"></p>
         <div class="bar-actions"><button class="btn" id="new-listing" type="button">+ New listing</button><button class="btn" id="refresh-listings" type="button">Refresh</button><div class="seg" id="lfilter" role="group" aria-label="Show"><button type="button" data-f="all" aria-pressed="true">All</button><button type="button" data-f="pending" aria-pressed="false">Pending review <b id="pend-n">0</b></button><button type="button" data-f="live" aria-pressed="false">Live</button></div></div>
         <form id="listing-form" class="card-form" hidden>
@@ -76,7 +76,7 @@
         <p id="listings-empty" class="empty" hidden>No listings yet.</p>
       </div>
 
-      <div id="view-enquiries" role="tabpanel" aria-labelledby="tab-enquiries" hidden>
+      <div id="view-enquiries" role="tabpanel" tabindex="0" aria-labelledby="tab-enquiries" hidden>
         <div class="bar-actions"><span id="mail-state" class="chip"></span><button class="btn" id="refresh" type="button">Refresh</button><button class="btn" id="csv" type="button">Export CSV</button></div>
         <div class="stats" aria-live="polite"><div><b id="s-total">0</b><span>Total</span></div><div><b id="s-new">0</b><span>New</span></div><div><b id="s-done">0</b><span>Handled</span></div></div>
         <div class="filters">
@@ -90,7 +90,7 @@
         <button class="btn" id="more" type="button" hidden>Load more</button>
       </div>
 
-      <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+      <div id="view-team" role="tabpanel" tabindex="0" aria-labelledby="tab-team" hidden>
         <form id="user-form" class="card-form">
           <h2>Add a broker or owner</h2>
           <div class="grid2">

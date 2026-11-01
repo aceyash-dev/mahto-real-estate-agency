@@ -35,10 +35,17 @@
   async function signOut(msg) { try { await post("/api/auth/logout", {}); } catch (_) { /* ignore */ } me = null; show(false); $("#password").value = ""; $("#login-msg").textContent = msg || ""; }
   const expired = e => { if (e.status === 401) { signOut("Your session ended. Please sign in again."); return true; } return false; };
 
-  function tab(name) {
-    $$("[role=tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  function tab(name, moveFocus = false) {
+    const buttons = $$("[role=tab]").filter(b => !b.hidden);
+    if (!buttons.some(b => b.dataset.tab === name)) return;
+    buttons.forEach(b => {
+      const selected = b.dataset.tab === name;
+      b.setAttribute("aria-selected", String(selected));
+      b.tabIndex = selected ? 0 : -1;
+    });
     ["listings", "enquiries", "team"].forEach(n => { $("#view-" + n).hidden = n !== name; });
     $("#panel-title").textContent = { listings: "Listings", enquiries: "Enquiries", team: "Team" }[name];
+    if (moveFocus) $("#tab-" + name).focus();
     if (name === "enquiries") load(); if (name === "team") loadUsers();
   }
 
@@ -147,8 +154,7 @@
   }
   function render(d) {
     const list = $("#list"); list.replaceChildren();
-    const handled = rows.filter(r => r.handled_at).length;
-    if (status === "all" && !$("#q").value.trim()) { $("#s-total").textContent = total; $("#s-done").textContent = handled; $("#s-new").textContent = Math.max(total - handled, 0); }
+    if (status === "all" && !$("#q").value.trim()) { $("#s-total").textContent = total; $("#s-done").textContent = d.handled ?? 0; $("#s-new").textContent = Math.max(total - (d.handled ?? 0), 0); }
     const chip = $("#mail-state"); chip.textContent = d.emailNotifications ? "Email alerts on" : "Email alerts off"; chip.classList.toggle("off", !d.emailNotifications);
     const note = $("#note"); note.hidden = d.handledColumn; if (!d.handledColumn) note.textContent = "Handled tracking needs one database step: run the last line of schema.sql.";
     rows.forEach((r, i) => list.append(card(r, i % 12, d.handledColumn)));
@@ -196,7 +202,21 @@
   $("#more").addEventListener("click", () => load(true));
   $("#q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => load(), 300); });
   $$(".seg button").forEach(b => b.addEventListener("click", () => { status = b.dataset.s; $$(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); load(); }));
-  $$("[role=tab]").forEach(b => b.addEventListener("click", () => tab(b.dataset.tab)));
+  const tablist = document.querySelector('[role="tablist"]');
+  tablist.addEventListener("click", e => { const b = e.target.closest('[role="tab"]'); if (b && !b.hidden) tab(b.dataset.tab); });
+  tablist.addEventListener("keydown", e => {
+    const current = e.target.closest('[role="tab"]');
+    if (!current) return;
+    const buttons = $$("[role=tab]").filter(b => !b.hidden);
+    const index = buttons.indexOf(current);
+    let next = index;
+    if (e.key === "ArrowRight") next = (index + 1) % buttons.length;
+    else if (e.key === "ArrowLeft") next = (index - 1 + buttons.length) % buttons.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = buttons.length - 1;
+    else return;
+    e.preventDefault(); tab(buttons[next].dataset.tab, true);
+  });
 
   /* Resume an existing session. */
   call("/api/auth/me").then(d => enter(d.user)).catch(() => show(false));
