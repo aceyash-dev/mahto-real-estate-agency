@@ -1,0 +1,14 @@
+.git
+.github
+functions
+src
+vendor
+node_modules
+schema.sql
+package.json
+package-lock.json
+wrangler.jsonc
+README.md
+README-CLOUDFLARE.md
+.env.example
+.env
