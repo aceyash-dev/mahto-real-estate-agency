@@ -1,3 +1,4 @@
+import { neon } from "@neondatabase/serverless";
 /* Session auth shared by the admin API. Cookie is HMAC-signed (SESSION_SECRET), HttpOnly, SameSite=Strict.
    Roles: admin (everything), broker and owner (their own listings only). */
 const enc = new TextEncoder();
@@ -35,7 +36,7 @@ export async function verifyPassword(password, stored) {
 }
 
 export async function makeSession(env, user) {
-  const payload = b64u(enc.encode(JSON.stringify({ uid: user.uid, email: user.email, name: user.name, role: user.role, exp: Math.floor(Date.now() / 1000) + MAX_AGE })));
+  const payload = b64u(enc.encode(JSON.stringify({ uid: user.uid, email: user.email, name: user.name, role: user.role, sv: Number(user.sv) || 0, exp: Math.floor(Date.now() / 1000) + MAX_AGE })));
   const sig = b64u(await crypto.subtle.sign("HMAC", await hmacKey(env.SESSION_SECRET), enc.encode(payload)));
   return `${payload}.${sig}`;
 }
@@ -51,7 +52,17 @@ export async function getSession(request, env) {
   if (!safeEqual(sig, expect)) return null;
   try {
     const s = JSON.parse(new TextDecoder().decode(unb64u(payload)));
-    return s.exp > Date.now() / 1000 && ROLES.includes(s.role) ? s : null;
+    if (!(s.exp > Date.now() / 1000 && ROLES.includes(s.role))) return null;
+    /* uid 0 is the secrets-based administrator (rotate SESSION_SECRET to revoke). */
+    if (!s.uid) return s;
+    /* Database users: re-check on every request so deactivation, role change and
+       password change take effect immediately. Fails closed if the lookup fails. */
+    if (!env.DATABASE_URL) return null;
+    const sql = neon(env.DATABASE_URL);
+    await ensureSchema(sql);
+    const r = (await sql`SELECT email, name, role, is_active, session_version FROM users WHERE id = ${Number(s.uid)}`)[0];
+    if (!r || !r.is_active || !ROLES.includes(r.role) || Number(r.session_version) !== (Number(s.sv) || 0)) return null;
+    return { ...s, email: r.email, name: r.name, role: r.role };
   } catch { return null; }
 }
 
@@ -76,6 +87,7 @@ export async function ensureSchema(sql) {
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_login_at TIMESTAMPTZ
   )`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS owner_user_id BIGINT`;
   await sql`CREATE TABLE IF NOT EXISTS listing_images (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

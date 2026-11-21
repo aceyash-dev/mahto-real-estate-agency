@@ -34,9 +34,9 @@ export async function onRequest({ request, env, params }) {
   } else if (env.DATABASE_URL) {
     try {
       const sql = neon(env.DATABASE_URL); await ensureSchema(sql);
-      const r = (await sql`SELECT id, email, name, role, password_hash, is_active FROM users WHERE email = ${email}`)[0];
+      const r = (await sql`SELECT id, email, name, role, password_hash, is_active, session_version FROM users WHERE email = ${email}`)[0];
       const ok = r ? await verifyPassword(password, r.password_hash) : (await hashPassword(password), false);
-      if (r && ok && r.is_active) { user = { uid: Number(r.id), email: r.email, name: r.name, role: r.role }; await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`; }
+      if (r && ok && r.is_active) { user = { uid: Number(r.id), email: r.email, name: r.name, role: r.role, sv: r.session_version }; await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`; }
     } catch (e) { console.error("login failed", e instanceof Error ? e.message : "unknown"); return json({ error: "Sign-in is temporarily unavailable." }, 500); }
   }
   if (!user) {

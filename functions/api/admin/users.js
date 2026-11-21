@@ -25,10 +25,10 @@ export async function onRequest({ request, env }) {
     }
     if (request.method === "PATCH") {
       const id = Number(b.id); if (!Number.isSafeInteger(id) || id < 1) return json({ error: "Valid user id required." }, 400);
-      if (typeof b.is_active === "boolean") await sql`UPDATE users SET is_active = ${b.is_active} WHERE id = ${id}`;
-      if (b.role !== undefined) { if (!ROLES.includes(b.role)) return json({ error: "Unsupported role." }, 400); await sql`UPDATE users SET role = ${b.role} WHERE id = ${id}`; }
+      if (typeof b.is_active === "boolean") await sql`UPDATE users SET is_active = ${b.is_active}, session_version = session_version + 1 WHERE id = ${id}`;
+      if (b.role !== undefined) { if (!ROLES.includes(b.role)) return json({ error: "Unsupported role." }, 400); await sql`UPDATE users SET role = ${b.role}, session_version = session_version + 1 WHERE id = ${id}`; }
       if (b.name !== undefined && txt(b.name, 100).length >= 2) await sql`UPDATE users SET name = ${txt(b.name, 100)} WHERE id = ${id}`;
-      if (b.password !== undefined) { if (String(b.password).length < 10) return json({ error: "Password must be at least 10 characters." }, 400); await sql`UPDATE users SET password_hash = ${await hashPassword(String(b.password))} WHERE id = ${id}`; }
+      if (b.password !== undefined) { if (String(b.password).length < 10) return json({ error: "Password must be at least 10 characters." }, 400); await sql`UPDATE users SET password_hash = ${await hashPassword(String(b.password))}, session_version = session_version + 1 WHERE id = ${id}`; }
       const r = await sql`SELECT id, email, name, role, is_active FROM users WHERE id = ${id}`;
       return r.length ? json({ user: r[0] }) : json({ error: "User not found." }, 404);
     }
