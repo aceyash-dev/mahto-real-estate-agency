@@ -27,8 +27,7 @@ export class Builder {
   at(t, fn) {
     const m = new THREE.Matrix4().compose(_p.set(t.x || 0, t.y || 0, t.z || 0), _q.setFromEuler(_e.set(t.rx || 0, t.ry || 0, t.rz || 0)), _s.set(1, 1, 1));
     this.stack.push(this.stack[this.stack.length - 1].clone().multiply(m));
-    fn(this);
-    this.stack.pop();
+    try { fn(this); } finally { this.stack.pop(); }
   }
 
   add(geo, mat, o = {}) {
@@ -54,7 +53,10 @@ export class Builder {
     const meshes = [];
     this.map.forEach((arr, mat) => {
       const merged = mergeGeometries(arr, false);
-      if (!merged) return;
+      if (!merged) {
+        console.warn("Builder: could not merge geometry group", mat.name || mat.type, arr.length);
+        return;
+      }
       const m = new THREE.Mesh(merged, mat);
       m.castShadow = !mat.userData.noShadow;
       m.receiveShadow = true;
