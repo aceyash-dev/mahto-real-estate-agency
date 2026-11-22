@@ -15,7 +15,9 @@ const missingColumn = e => /handled_at/.test(String(e && e.message)) && /column|
    PATCH /api/admin/enquiries  { id, handled: boolean } */
 export async function onRequest({ request, env }) {
   if (!["GET", "PATCH"].includes(request.method)) return out({ error: "Method not allowed." }, 405);
-  const session = await getSession(request, env);
+  let session;
+  try { session = await getSession(request, env); }
+  catch { return out({ error: "Authentication is temporarily unavailable." }, 503); }
   if (!(session && session.role === "admin" && sameOrigin(request))) {
     if (!env.ADMIN_API_TOKEN) return out({ error: "Admin access is not configured." }, 503);
     if (!auth(request, env.ADMIN_API_TOKEN)) { await new Promise(r => setTimeout(r, 400)); return out({ error: "Unauthorized." }, 401); }

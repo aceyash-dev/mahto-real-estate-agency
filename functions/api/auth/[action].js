@@ -9,8 +9,10 @@ const FAILURE_TTL_MS = 10 * 60 * 1000;
 export async function onRequest({ request, env, params }) {
   const action = params.action;
   if (action === "me") {
-    const s = await getSession(request, env);
-    return s ? json({ user: { email: s.email, name: s.name, role: s.role } }) : json({ error: "Not signed in." }, 401);
+    try {
+      const s = await getSession(request, env);
+      return s ? json({ user: { email: s.email, name: s.name, role: s.role } }) : json({ error: "Not signed in." }, 401);
+    } catch { return json({ error: "Sign-in is temporarily unavailable." }, 503); }
   }
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
   if (!sameOrigin(request)) return json({ error: "Cross-site request blocked." }, 403);
@@ -34,9 +36,9 @@ export async function onRequest({ request, env, params }) {
   } else if (env.DATABASE_URL) {
     try {
       const sql = neon(env.DATABASE_URL); await ensureSchema(sql);
-      const r = (await sql`SELECT id, email, name, role, password_hash, is_active FROM users WHERE email = ${email}`)[0];
+      const r = (await sql`SELECT id, email, name, role, password_hash, is_active, auth_version FROM users WHERE email = ${email}`)[0];
       const ok = r ? await verifyPassword(password, r.password_hash) : (await hashPassword(password), false);
-      if (r && ok && r.is_active) { user = { uid: Number(r.id), email: r.email, name: r.name, role: r.role }; await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`; }
+      if (r && ok && r.is_active) { user = { uid: Number(r.id), email: r.email, name: r.name, role: r.role, auth_version: Number(r.auth_version) }; await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`; }
     } catch (e) { console.error("login failed", e instanceof Error ? e.message : "unknown"); return json({ error: "Sign-in is temporarily unavailable." }, 500); }
   }
   if (!user) {

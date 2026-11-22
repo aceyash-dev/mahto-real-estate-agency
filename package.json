@@ -4,6 +4,7 @@
   "private": true,
   "description": "Mahto Real Estate Agency static site and Cloudflare Pages Functions backend",
   "scripts": {
+    "test": "node --test",
     "dev": "wrangler pages dev .",
     "deploy": "wrangler pages deploy . --project-name=mahto-real-estate-agency"
   },

@@ -25,10 +25,23 @@ export async function onRequest({ request, env }) {
     }
     if (request.method === "PATCH") {
       const id = Number(b.id); if (!Number.isSafeInteger(id) || id < 1) return json({ error: "Valid user id required." }, 400);
-      if (typeof b.is_active === "boolean") await sql`UPDATE users SET is_active = ${b.is_active} WHERE id = ${id}`;
-      if (b.role !== undefined) { if (!ROLES.includes(b.role)) return json({ error: "Unsupported role." }, 400); await sql`UPDATE users SET role = ${b.role} WHERE id = ${id}`; }
-      if (b.name !== undefined && txt(b.name, 100).length >= 2) await sql`UPDATE users SET name = ${txt(b.name, 100)} WHERE id = ${id}`;
-      if (b.password !== undefined) { if (String(b.password).length < 10) return json({ error: "Password must be at least 10 characters." }, 400); await sql`UPDATE users SET password_hash = ${await hashPassword(String(b.password))} WHERE id = ${id}`; }
+      if (b.role !== undefined && !ROLES.includes(b.role)) return json({ error: "Unsupported role." }, 400);
+      if (b.password !== undefined && String(b.password).length < 10) return json({ error: "Password must be at least 10 characters." }, 400);
+      const active = typeof b.is_active === "boolean" ? b.is_active : null;
+      const role = b.role === undefined ? null : b.role;
+      const name = b.name !== undefined && txt(b.name, 100).length >= 2 ? txt(b.name, 100) : null;
+      const passwordHash = b.password === undefined ? null : await hashPassword(String(b.password));
+      await sql`UPDATE users SET
+        is_active = COALESCE(${active}, is_active),
+        role = COALESCE(${role}, role),
+        name = COALESCE(${name}, name),
+        password_hash = COALESCE(${passwordHash}, password_hash),
+        auth_version = auth_version + CASE WHEN
+          (${active} IS NOT NULL AND is_active IS DISTINCT FROM ${active}) OR
+          (${role} IS NOT NULL AND role IS DISTINCT FROM ${role}) OR
+          password_hash IS DISTINCT FROM COALESCE(${passwordHash}, password_hash)
+          THEN 1 ELSE 0 END
+        WHERE id = ${id}`;
       const r = await sql`SELECT id, email, name, role, is_active FROM users WHERE id = ${id}`;
       return r.length ? json({ user: r[0] }) : json({ error: "User not found." }, 404);
     }

@@ -1,3 +1,5 @@
+import { neon } from "@neondatabase/serverless";
+
 /* Session auth shared by the admin API. Cookie is HMAC-signed (SESSION_SECRET), HttpOnly, SameSite=Strict.
    Roles: admin (everything), broker and owner (their own listings only). */
 const enc = new TextEncoder();
@@ -35,7 +37,8 @@ export async function verifyPassword(password, stored) {
 }
 
 export async function makeSession(env, user) {
-  const payload = b64u(enc.encode(JSON.stringify({ uid: user.uid, email: user.email, name: user.name, role: user.role, exp: Math.floor(Date.now() / 1000) + MAX_AGE })));
+  const auth_version = Number.isSafeInteger(user.auth_version) ? user.auth_version : 0;
+  const payload = b64u(enc.encode(JSON.stringify({ uid: user.uid, email: user.email, name: user.name, role: user.role, auth_version, exp: Math.floor(Date.now() / 1000) + MAX_AGE })));
   const sig = b64u(await crypto.subtle.sign("HMAC", await hmacKey(env.SESSION_SECRET), enc.encode(payload)));
   return `${payload}.${sig}`;
 }
@@ -49,10 +52,24 @@ export async function getSession(request, env) {
   if (!payload || !sig) return null;
   const expect = b64u(await crypto.subtle.sign("HMAC", await hmacKey(env.SESSION_SECRET), enc.encode(payload)));
   if (!safeEqual(sig, expect)) return null;
-  try {
-    const s = JSON.parse(new TextDecoder().decode(unb64u(payload)));
-    return s.exp > Date.now() / 1000 && ROLES.includes(s.role) ? s : null;
-  } catch { return null; }
+  let s;
+  try { s = JSON.parse(new TextDecoder().decode(unb64u(payload))); }
+  catch { return null; }
+  if (!(s.exp > Date.now() / 1000) || !ROLES.includes(s.role) || !Number.isSafeInteger(s.uid) || s.uid < 0) return null;
+  // Database account changes revoke existing sessions on their next request.
+  if (s.uid === 0) return s;
+  if (!env.DATABASE_URL || !Number.isSafeInteger(s.auth_version)) return null;
+  const sql = neon(env.DATABASE_URL);
+  await ensureSchema(sql);
+  const user = (await sql`SELECT id, role, is_active, auth_version FROM users WHERE id = ${s.uid}`)[0];
+  return isCurrentUserSession(s, user) ? s : null;
+}
+
+export function isCurrentUserSession(session, user) {
+  return Boolean(user && user.is_active === true &&
+    Number(user.id) === session.uid && user.role === session.role &&
+    Number.isSafeInteger(session.auth_version) &&
+    Number(user.auth_version) === session.auth_version);
 }
 
 /* Same-origin check for state-changing requests (defence in depth on top of SameSite=Strict). */
@@ -73,9 +90,11 @@ export async function ensureSchema(sql) {
     role VARCHAR(10) NOT NULL CHECK (role IN ('admin','broker','owner')),
     password_hash TEXT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    auth_version INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_login_at TIMESTAMPTZ
   )`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_version INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS owner_user_id BIGINT`;
   await sql`CREATE TABLE IF NOT EXISTS listing_images (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -94,7 +113,9 @@ export async function require(request, env, roles = ROLES) {
   const bearer = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (bearer && env.ADMIN_API_TOKEN && safeEqual(bearer, env.ADMIN_API_TOKEN) && roles.includes("admin")) return { uid: 0, email: "token", name: "Admin token", role: "admin" };
   if (!env.SESSION_SECRET) return json({ error: "Admin sign-in is not configured." }, 503);
-  const s = await getSession(request, env);
+  let s;
+  try { s = await getSession(request, env); }
+  catch { return json({ error: "Authentication is temporarily unavailable." }, 503); }
   if (!s) return json({ error: "Please sign in." }, 401);
   if (!roles.includes(s.role)) return json({ error: "You do not have permission for this." }, 403);
   return s;

@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_login_at TIMESTAMPTZ
 );
+ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_version INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS owner_user_id BIGINT;
 
 -- Global, privacy-preserving throttle for public enquiry submissions.
